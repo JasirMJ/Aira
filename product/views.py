@@ -30,6 +30,8 @@ class ProductView(ListAPIView):
 
     def post(self,request):
 
+
+
         if Products.objects.all().exists():
             last = Products.objects.last().id
             auto_id = 100000

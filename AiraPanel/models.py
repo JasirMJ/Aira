@@ -5,6 +5,9 @@ from django.db import models
 class Companies(models.Model):
     name = models.CharField(max_length=120,unique=True)
 
+class Customers(models.Model):
+    name = models.CharField(max_length=120,unique=True)
+
 class Categories(models.Model):
     name = models.CharField(max_length=120,unique=True)
 
@@ -52,3 +55,30 @@ class Products(models.Model):
     cess = models.CharField(max_length=12,null=True)
     additional_cess = models.CharField(max_length=12,null=True)
     second_name = models.CharField(max_length=12,null=True)
+
+class Invoices(models.Model):
+    # invoiceid = models.CharField(max_length=12,null=True)
+    customer = models.ManyToManyField(Customers)
+    created = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateTimeField(null=False)
+    company = models.ManyToManyField(Companies)
+    status = models.CharField(max_length=12,null=True)
+    total_amount = models.CharField(max_length=12,null=True)
+    paid_amount = models.CharField(max_length=12,null=True)
+    # product = models.ManyToManyField(Products)
+
+class ItemsInvoice(models.Model):
+    invoiceId = models.ForeignKey(Invoices,on_delete=models.CASCADE)
+    productId = models.ManyToManyField(Products)
+    # customer = models.ManyToManyField(Customers)
+    # company = models.ManyToManyField(Companies)
+    item_price = models.CharField(max_length=20)
+    tax = models.CharField(max_length=10)
+
+class PayemetHistory(models.Model):
+    invoice_id = models.ForeignKey(Invoices,on_delete=models.CASCADE)
+    date_of_payement = models.DateTimeField(auto_now_add=True)
+    amount =models.CharField(max_length=12,null=True)
+
+
+

@@ -34,13 +34,22 @@ class CategoryView(ListAPIView):
 
         obj = Categories()
         obj.name = name
-        obj.save()
-        return Response(
-            {
-                STATUS:True,
-                MESSAGE:"post",
-            }
-        )
+        try:
+            obj.save()
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "post",
+                }
+            )
+        except Exception as e:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: str(e),
+                }
+            )
     def put(self,request):
         id = self.request.POST.get('id','')
         name = self.request.POST.get('name', '')
@@ -111,13 +120,22 @@ class UnitView(ListAPIView):
 
         obj = Units()
         obj.name = name
-        obj.save()
-        return Response(
-            {
-                STATUS: True,
-                MESSAGE: "post",
-            }
-        )
+        try:
+            obj.save()
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "post",
+                }
+            )
+        except Exception as e:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: str(e),
+                }
+            )
 
     def put(self, request):
         id = self.request.POST.get('id', '')
@@ -189,13 +207,22 @@ class SubCategoryView(ListAPIView):
 
         obj = SubCategories()
         obj.name = name
-        obj.save()
-        return Response(
-            {
-                STATUS: True,
-                MESSAGE: "post",
-            }
-        )
+        try:
+            obj.save()
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "post",
+                }
+            )
+        except Exception as e:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: str(e),
+                }
+            )
 
     def put(self, request):
         id = self.request.POST.get('id', '')
@@ -267,13 +294,22 @@ class CompanyView(ListAPIView):
 
         obj = Companies()
         obj.name = name
-        obj.save()
-        return Response(
-            {
-                STATUS: True,
-                MESSAGE: "post",
-            }
-        )
+        try:
+            obj.save()
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "post",
+                }
+            )
+        except Exception as e:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: str(e),
+                }
+            )
 
     def put(self, request):
         id = self.request.POST.get('id', '')
@@ -323,3 +359,98 @@ class CompanyView(ListAPIView):
                 MESSAGE: "delete",
             }
         )
+
+class CustomerView(ListAPIView):
+    serializer_class = CustomerSerializers
+
+    def get_queryset(self):
+        queryset = Customers.objects.all()
+        return queryset
+
+    def post(self, request):
+        name = self.request.POST.get('name', '')
+        if name == "" or not name:
+            msg = "required name"
+            return Response(
+                {
+                    MESSAGE: msg,
+                    STATUS: False,
+                }
+            )
+        print(INFO, "name :", id)
+
+        obj = Customers()
+        obj.name = name
+        try:
+            obj.save()
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "post",
+                }
+            )
+        except Exception as e:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: str(e),
+                }
+            )
+
+    def put(self, request):
+        id = self.request.POST.get('id', '')
+        name = self.request.POST.get('name', '')
+
+        if name == "" or not name:
+            msg = "required name"
+            return Response(
+                {
+                    MESSAGE: msg,
+                    STATUS: False,
+                }
+            )
+        print(INFO, "name :", id)
+
+        if id == "" or not id:
+            msg = "required id"
+            return Response(
+                {
+                    MESSAGE: msg,
+                    STATUS: False,
+                }
+            )
+        print(INFO, "id :", id)
+
+        obj = Customers.objects.filter(id=id).first()
+        obj.name = name
+        obj.save()
+
+        return Response(
+            {
+                STATUS: True,
+                MESSAGE: "put",
+            }
+        )
+
+    def delete(self, request):
+        id = self.request.POST.get('id', '')
+        delete = self.request.POST.get('delete', '')
+        if delete == "delete":
+            Customers.objects.all().delete()
+        elif not id == '':
+            Customers.objects.filter(id=id).delete()
+        return Response(
+            {
+                STATUS: True,
+                MESSAGE: "delete",
+            }
+        )
+
+
+
+
+
+
+
+

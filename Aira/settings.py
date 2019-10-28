@@ -25,7 +25,10 @@ SECRET_KEY = 'b#1&i-^mj(o*or&c&l35jikrl_gob_uo&mrbs@0(8kf=y8=25g'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '192.168.0.104',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -43,6 +46,7 @@ INSTALLED_APPS = [
     'AiraPanel',
     'product',
     'billing',
+    'invoice',
 
 ]
 

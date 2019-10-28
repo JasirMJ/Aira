@@ -28,6 +28,15 @@ class CompanySerializers(serializers.ModelSerializer):
         # fields = ['username', 'email']
         fields = '__all__'
 
+class CustomerSerializers(serializers.ModelSerializer):
+    # SNIT = SNITUsers()
+    # departments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Customers
+        # fields = ['username', 'email']
+        fields = '__all__'
+
 class UnitSerializers(serializers.ModelSerializer):
     # SNIT = SNITUsers()
     # departments = serializers.SerializerMethodField()

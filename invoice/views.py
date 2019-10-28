@@ -62,6 +62,7 @@ class InvoiceView(ListAPIView):
             inv_obj.customer.add(cst_obj)
             inv_obj.company.add(cmp_obj)
 
+
             # ItemsInvoice.objects.raw(
             #     "INSERT INTO airapanel_itemsinvoice (invoiceId, item_price, tax) "
             #     "VALUES ("'inv_obj.id'",  )"

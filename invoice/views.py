@@ -21,7 +21,7 @@ class InvoiceView(ListAPIView):
     serializer_class = InvoiceSerializers
 
     def get_queryset(self):
-        queryset = Invoices.objects.all()
+        queryset = Invoices.objects.all().order_by('-id')
         return queryset
     def post(self,reqeust):
         try:
@@ -38,12 +38,17 @@ class InvoiceView(ListAPIView):
             items = json.loads(items)
 
             # the result is a Python dictionary:
-            for item in items:
-                print(item['item'],"rs ",item['price'])
 
 
-            for x in Invoices.objects.raw("SELECT * FROM airapanel_invoices"):
-                print(x.id)
+            #
+            # ItemsInvoice.objects.raw(
+            #     "INSERT INTO airapanel_itemsinvoice (invoiceId, item_price, tax) "
+            #     # "VALUES ("'inv_obj.id'",  )"
+            #     "VALUES ("'7'","'32'"," '23' ")"
+            # )
+
+            # for x in Invoices.objects.raw("SELECT * FROM airapanel_invoices"):
+            #     print(x.id)
 
 
             i_obj = ItemsInvoice()
@@ -62,13 +67,57 @@ class InvoiceView(ListAPIView):
             inv_obj.customer.add(cst_obj)
             inv_obj.company.add(cmp_obj)
 
+            print(INFO,"invoice id ",inv_obj.id)
 
-            # ItemsInvoice.objects.raw(
-            #     "INSERT INTO airapanel_itemsinvoice (invoiceId, item_price, tax) "
-            #     "VALUES ("'inv_obj.id'",  )"
-            # )
+            instance = []
+            for item in items:
+                print(item['item'], "rs ", item['price'])
+                instance.append(
+                    ItemsInvoice(
+                        invoiceId=inv_obj.id,
+                        product_Id=item['item'],
+                        item_price=item['price'],
+                        tax=item['tax'],
+                        # discount=item['discount'],
+                        # tax=item['tax'],
+                    ),
+                )
 
-            inv_obj.delete()
+            print(instance)
+            # instance = [
+            #     ItemsInvoice(
+            #         invoiceId=inv_obj,
+            #         product_Id = 32,
+            #         item_price='25',
+            #         tax='12'
+            #     ),
+            #     ItemsInvoice(
+            #         invoiceId=inv_obj,
+            #         product_Id=32,
+            #         item_price='30',
+            #         tax='11'
+            #     ),
+            #     ItemsInvoice(
+            #         invoiceId=inv_obj,
+            #         product_Id=32,
+            #         item_price='52',
+            #         tax='10'
+            #     )
+            # ]
+            # obj = ItemsInvoice()
+            # obj.
+            ItemsInvoice.objects.bulk_create(instance)
+            for x in ItemsInvoice.objects.filter(invoiceId = inv_obj.id):
+                inv_obj.items.add(x)
+
+            # obj = ItemsInvoice(obj)
+            # obj.save()
+            # for x in
+
+            # ItemsInvoice.objects.bulk_create()
+
+
+            # inv_obj.delete()
 
             return Response(
                 {
@@ -85,7 +134,7 @@ class InvoiceView(ListAPIView):
                 }
             )
         except Exception as e:
-            # inv_obj.delete()
+            inv_obj.delete()
             return Response(
                 {
                     STATUS:False,

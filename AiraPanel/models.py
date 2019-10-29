@@ -56,6 +56,14 @@ class Products(models.Model):
     additional_cess = models.CharField(max_length=12,null=True)
     second_name = models.CharField(max_length=12,null=True)
 
+class ItemsInvoice(models.Model):
+    invoiceId = models.CharField(max_length=20)
+    product_Id = models.CharField(max_length=20)
+    # customer = models.ManyToManyField(Customers)
+    # company = models.ManyToManyField(Companies)
+    item_price = models.CharField(max_length=20)
+    tax = models.CharField(max_length=10)
+
 class Invoices(models.Model):
     # invoiceid = models.CharField(max_length=12,null=True)
     customer = models.ManyToManyField(Customers)
@@ -66,14 +74,9 @@ class Invoices(models.Model):
     total_amount = models.CharField(max_length=12,null=True)
     paid_amount = models.CharField(max_length=12,null=True)
     # product = models.ManyToManyField(Products)
+    items = models.ManyToManyField(ItemsInvoice)
 
-class ItemsInvoice(models.Model):
-    invoiceId = models.ForeignKey(Invoices,on_delete=models.CASCADE)
-    productId = models.ManyToManyField(Products)
-    # customer = models.ManyToManyField(Customers)
-    # company = models.ManyToManyField(Companies)
-    item_price = models.CharField(max_length=20)
-    tax = models.CharField(max_length=10)
+
 
 class PayemetHistory(models.Model):
     invoice_id = models.ForeignKey(Invoices,on_delete=models.CASCADE)

@@ -64,24 +64,27 @@ class ItemsInvoice(models.Model):
     item_price = models.CharField(max_length=20)
     tax = models.CharField(max_length=10)
 
+class PayemetHistory(models.Model):
+    invoice_id = models.CharField(max_length=12,null=True)
+    date_of_payement = models.DateTimeField(null=False)
+    amount =models.CharField(max_length=12,null=True)
+
 class Invoices(models.Model):
     # invoiceid = models.CharField(max_length=12,null=True)
     customer = models.ManyToManyField(Customers)
     created = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(null=False)
     company = models.ManyToManyField(Companies)
-    status = models.CharField(max_length=12,null=True)
+    status = models.CharField(max_length=20,null=True)
     total_amount = models.CharField(max_length=12,null=True)
     paid_amount = models.CharField(max_length=12,null=True)
     # product = models.ManyToManyField(Products)
     items = models.ManyToManyField(ItemsInvoice)
+    payement_history = models.ManyToManyField(PayemetHistory)
 
 
 
-class PayemetHistory(models.Model):
-    invoice_id = models.ForeignKey(Invoices,on_delete=models.CASCADE)
-    date_of_payement = models.DateTimeField(auto_now_add=True)
-    amount =models.CharField(max_length=12,null=True)
+
 
 
 

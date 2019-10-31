@@ -6,5 +6,6 @@ from invoice import views
 urlpatterns = [
     # path('', views.index, name="index"),
     path('', views.InvoiceView.as_view(), name="invoice"),
+    path('payements/', views.Payement.as_view(), name="invoice"),
 
 ]

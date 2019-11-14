@@ -1,3 +1,5 @@
+import sys
+
 from django.http import HttpResponse
 from django.shortcuts import render
 
@@ -18,13 +20,13 @@ class ProductView(ListAPIView):
     serializer_class = ProductsSerializers
 
     def get_queryset(self):
-        queryset = Products.objects.all()
+        queryset = Products.objects.all().order_by('-id')
 
         id = self.request.POST.get('id','')
         if id == '':
             return queryset
         else:
-            queryset = Products.objects.filter(id=id)
+            queryset = Products.objects.filter(id=id).order_by('-id')
             return queryset
 
 
@@ -45,7 +47,7 @@ class ProductView(ListAPIView):
         itemname = self.request.POST.get('itemname', 'itemname')
         company_id = self.request.POST.get('company_id', 'company_id')
         category_id = self.request.POST.get('category_id', 'category_id')
-        sub_category_id = self.request.POST.get('sub_category_id', 'sub_category_id')
+        # sub_category_id = self.request.POST.get('sub_category_id', 'sub_category_id')
         unit_id = self.request.POST.get('unit_id', 'unit_id')
         company_id = self.request.POST.get('company_id', '')
         category_id = self.request.POST.get('category_id', '')
@@ -99,46 +101,72 @@ class ProductView(ListAPIView):
                 }
             )
         print(INFO, "name :", id)
-        print(INFO,"Adding to DB")
-        p_obj = Products()
-        p_obj.pdt = 'AIRA'+ str(pdt_id_count)
-        p_obj.name = name
-        p_obj.hsn_code = hsncode
-        p_obj.hsn_group = hsngrp
-        p_obj.item_name = itemname
-
-
-
-        #
-        # # selling rules
-        p_obj.mrp = self.request.POST.get('mrp','200')
-        p_obj.wholesale = self.request.POST.get('wholesale','200')
-        # sp = models.CharField(max_length=12, null=True)
-        # retail = models.CharField(max_length=12, null=True)
-        # branch = models.CharField(max_length=12, null=True)
-        # loading_charge = models.CharField(max_length=12, null=True)
-        p_obj.is_active = self.request.POST.get('active',1)
-
-
-
-
-
-        # # details
         try:
+            print(INFO,"Adding to DB")
+            p_obj = Products()
+            p_obj.pdt = 'AIRA'+ str(pdt_id_count)
+            p_obj.name = name
+            p_obj.hsn_code = hsncode
+            p_obj.hsn_group = hsngrp
+            p_obj.item_name = itemname
+
+
+
+            #
+            # # selling rules
+            p_obj.mrp = self.request.POST.get('mrp','200')
+            p_obj.wholesale = self.request.POST.get('wholesale','200')
+            # sp = models.CharField(max_length=12, null=True)
+            # retail = models.CharField(max_length=12, null=True)
+            # branch = models.CharField(max_length=12, null=True)
+            # loading_charge = models.CharField(max_length=12, null=True)
+            p_obj.is_active = self.request.POST.get('active',1)
+
+
+
+
+
+            # # details
+            print("p id",p_obj.id)
             p_obj.save()
+            print("p id", p_obj.id)
+
+            p_obj.manufaturer.add(Companies.objects.filter(id=company_id).first().id)
+            print("Companies :",Companies.objects.filter(id=company_id).first().name)
+
+            p_obj.category.add(Categories.objects.filter(id=category_id).first().id)
+            print("Categories :",Categories.objects.filter(id=category_id).first().name)
+
+            p_obj.subcategory.add(SubCategories.objects.filter(id=sub_category_id).first().id)
+            print("SubCategories : ",SubCategories.objects.filter(id=sub_category_id).first().name)
+
+            p_obj.unit.add(Units.objects.filter(id=unit_id).first().id)
+            print("Units : ",Units.objects.filter(id=unit_id).first().name)
+
+
+
+
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: name + " added to products"
+                }
+            )
+
         except Exception as e:
+            p_obj.delete()
+
             return Response(
                 {
                     STATUS:False,
                     MESSAGE: str(e),
+                    "line_no": format(sys.exc_info()[-1].tb_lineno),
                 }
             )
 
         # common_name = models.CharField(max_length=12, null=True)
-        p_obj.manufaturer.add(Companies.objects.filter(id=company_id).first().id)
-        p_obj.category.add(Categories.objects.filter(id=category_id).first().id)
-        p_obj.subcategory.add(SubCategories.objects.filter(id=sub_category_id).first().id)
-        p_obj.unit.add(Units.objects.filter(id=unit_id).first().id)
+
 
         # reorder_level = models.IntegerField(null=True)
         # rack = models.CharField(max_length=12, null=True)
@@ -153,12 +181,7 @@ class ProductView(ListAPIView):
         # cess = models.CharField(max_length=12, null=True)
         # additional_cess = models.CharField(max_length=12, null=True)
         # second_name = models.CharField(max_length=12, null=True)
-        return Response(
-            {
-                STATUS:True,
-                MESSAGE: name+" added to products"
-            }
-        )
+
 
 
     def put(self,request):

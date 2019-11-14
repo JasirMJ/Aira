@@ -85,15 +85,37 @@ WSGI_APPLICATION = 'Aira.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        },
-    }
-else:
-    DATABASES = {
+#
+# if DEBUG:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.sqlite3',
+#             'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#         },
+#     }
+# else:
+#     DATABASES = {
+#         # 'default': {
+#         #     'ENGINE': 'django.db.backends.sqlite3',
+#         #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#         # },
+#         'default': {
+#             'ENGINE': 'django.db.backends.mysql',
+#             'USER':'root',                          #msql user name
+#             'PASSWORD':'',                          #msql password
+#             'NAME':'aira',                     #dbname
+#             'HOST':'localhost',
+#             'PORT':'3306',
+#             'OPTIONS': {
+#                 # 'init_command':"SET sql_mode='STRICT_TRANS_TABLES'",
+#                 'init_command':'SET innodb_strict_mode=1',
+#                 #tell MYSQLdb to connect with 'utf8mb4' character set
+#                 'charset':'utf8mb4',
+#             },
+#         }
+#     }
+
+DATABASES = {
         # 'default': {
         #     'ENGINE': 'django.db.backends.sqlite3',
         #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
@@ -111,16 +133,8 @@ else:
                 #tell MYSQLdb to connect with 'utf8mb4' character set
                 'charset':'utf8mb4',
             },
-            # 'aira_test':{
-            #
-            #     'CHARSET':'utf8mb4',
-            #     'COLLATION':'utf8mb4_unicode_ci',
-            #
-            #
-            # },
         }
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators

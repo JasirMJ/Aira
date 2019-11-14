@@ -351,14 +351,27 @@ class CompanyView(ListAPIView):
         delete = self.request.POST.get('delete', '')
         if delete == "delete":
             Companies.objects.all().delete()
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "deleted all",
+                }
+            )
         elif not id == '':
-            Companies.objects.filter(id=id).delete()
-        return Response(
-            {
-                STATUS: True,
-                MESSAGE: "delete",
-            }
-        )
+            print(Companies.objects.filter(id=id).delete())
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "deleted 1 item",
+                }
+            )
+        else:
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "deleted nothing",
+                }
+            )
 
 class CustomerView(ListAPIView):
     serializer_class = CustomerSerializers

@@ -3,6 +3,7 @@ import sys
 import traceback
 from datetime import timezone, datetime
 
+from django.contrib.sites import requests
 from django.http import HttpResponse
 from django.shortcuts import render
 
@@ -19,6 +20,20 @@ from invoice.serializers import *
 def index(request):
     return HttpResponse('Welcome to Aira Products , site is under developement')
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class InvoiceView(ListAPIView):
     serializer_class = InvoiceSerializers
 
@@ -33,7 +48,11 @@ class InvoiceView(ListAPIView):
             cmp_id = self.request.POST.get('cmp_id','')
             status = self.request.POST.get('status','posted')
             total_amount = self.request.POST.get('total_amount')
-            paid_amount = self.request.POST.get('paid_amount','0')
+            paid_amount = float(self.request.POST.get('paid_amount','0'))
+
+
+
+
 
             items = self.request.POST.get('items','')
 
@@ -52,14 +71,10 @@ class InvoiceView(ListAPIView):
             inv_obj.status = status
             inv_obj.total_amount = total_amount
             inv_obj.paid_amount = paid_amount
+            inv_obj.customer= cmp_id
+            inv_obj.company= cst_id
 
             inv_obj.save()
-
-            cmp_obj = Companies.objects.filter(id=cmp_id).first()
-            cst_obj = Customers.objects.filter(id=cst_id).first()
-
-            inv_obj.customer.add(cst_obj)
-            inv_obj.company.add(cmp_obj)
 
             print(INFO,"invoice id ",inv_obj.id)
 
@@ -112,7 +127,17 @@ class InvoiceView(ListAPIView):
 
 
             # inv_obj.delete()
-
+            if float(paid_amount) > 0.0 :
+                'if any advance amount paid, it will be recorded in payement history'
+                print("Advance paid")
+                description = 'advance'
+                ph_obj = PayemetHistory()
+                ph_obj.invoice_id = inv_obj.id
+                ph_obj.date_of_payement = inv_obj.created
+                ph_obj.amount = paid_amount
+                ph_obj.description = description
+                ph_obj.save()
+                inv_obj.payement_history.add(ph_obj)
             return Response(
                 {
                     STATUS:True,
@@ -189,6 +214,7 @@ class Payement(ListAPIView):
     def post(self,request):
         try:
             id = self.request.POST.get('id')
+
             i_obj = Invoices.objects.filter(id=id)
             type = self.request.POST.get('type')
             amount = self.request.POST.get('amount')
@@ -258,3 +284,89 @@ class Payement(ListAPIView):
                     MESSAGE:"Invoice not found",
                 }
             )
+
+class SendInvoice(ListAPIView):
+    def post(self,request):
+        id = self.request.POST.get('id')
+        i_obj = Invoices.objects.filter(id=id)
+        pass
+
+
+
+
+def SendInvoice(mail, username, password):
+    SUBJECT = "Codedady Invoice"
+    url = "https://api.sendgrid.com/v3/mail/send"
+    data = {
+        "personalizations": [
+            {
+                "to": [
+                    {
+                        "email": mail,
+                    }
+                ]
+            }
+        ],
+        "from": {
+            "email": "aira.admin@no-replay.com"
+        },
+        "subject": SUBJECT,
+        "content": [
+            {
+                "type": "text/html",
+                "value": '''
+
+<html>
+    <body><br>
+        <br>
+        <center>
+        <div style="background-color:rgb(241, 241, 241);height: 600px;width: 500px;">
+                <div style="float: left;    background-color:rgb(227, 244, 255);    height: 100px;    width: 200px;">address </div>
+                <div class="invoice_details" style="float: right;    background-color:rgb(223, 242, 255);    height: 100px;    width: 200px;">invoice number</div>
+            <div style="height: 10px;"></div>    
+
+            <div class="items" style="margin-top:100px;    background-color:red;    height: 200px;    width: 500px;">
+                items list
+                <div style="background-color: wheat;">
+                    <div style="display: inline-block;    width: 78px;    background-color: thistle;">
+                        si 
+                    </div>
+                    <div style="display: inline-block;    width: 78px;    background-color: thistle;">
+                        item
+                    </div>
+                    <div style="display: inline-block;    width: 78px;    background-color: thistle;">
+                        tax        
+                    </div>
+                    <div style="display: inline-block;    width: 78px;    background-color: thistle;">
+                        price        
+                    </div>
+                    <div style="display: inline-block;    width: 78px;    background-color: thistle;">
+                        qty
+                    </div>
+                    <div style="display: inline-block;    width: 78px;    background-color: thistle;">
+                        total
+                    </div>
+                </div>
+
+            </div>
+
+    <div style="float: left ;    margin-top:10px;    background-color:green;    height: 50px;    width: 200px;">other details</div>
+        </div>
+    </center>
+    </body>
+</html>
+                '''
+
+            }
+        ]
+    }
+    headers = {
+        'Content-type': 'application/json',
+        # 'Accept': 'text/plain',
+        'Authorization': 'Bearer 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',
+    }
+    r = requests.post(url, data=json.dumps(data), headers=headers)
+    print(r)
+
+
+# SendInvoice('sumi.hostcurator@gmail.com', "jasir", "password")

@@ -31,7 +31,6 @@ class CompanySerializers(serializers.ModelSerializer):
 class CustomerSerializers(serializers.ModelSerializer):
     # SNIT = SNITUsers()
     # departments = serializers.SerializerMethodField()
-
     class Meta:
         model = Customers
         # fields = ['username', 'email']
@@ -52,5 +51,11 @@ class SubCategorySerializers(serializers.ModelSerializer):
 
     class Meta:
         model = SubCategories
+        # fields = ['username', 'email']
+        fields = '__all__'
+
+class ItemsInvoiceSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ItemsInvoice
         # fields = ['username', 'email']
         fields = '__all__'

@@ -26,68 +26,71 @@ class PayemetHistorySerializer(serializers.ModelSerializer):
 
 
 class InvoiceSerializers(serializers.ModelSerializer):
-    payement_details = serializers.SerializerMethodField()
+    # payement_details = serializers.SerializerMethodField()
+    # customer_details = serializers.SerializerMethodField()
+    # company_details = serializers.SerializerMethodField()
+    # items_details = serializers.SerializerMethodField()
 
-    customer_details = serializers.SerializerMethodField()
-    company_details = serializers.SerializerMethodField()
-    items_details = serializers.SerializerMethodField()
+    items = ItemsInvoiceSerializers(many=True)
+    payement_history = PayemetHistorySerializer(many=True)
+    # customer = CustomerSerializers(many=True)
 
     class Meta:
         model = Invoices
         fields = '__all__'
 
-    def get_company_details(self, obj):
-        # print("obj ",obj)
-        # cmp_id = Invoices.objects.filter(id=obj.id).first().customer.all().first().id
-
-        details = Companies.objects.filter(id=obj.company)
-        # print(details)
-        print("invopice ",Companies.objects.filter(id=obj.company).first())
-        if details.exists() :
-            details = Companies.objects.filter(id=obj.company).order_by('id')
-            response = CompanySerializers(details,many=True)
-            return response.data
-        else :
-            print("0 companies")
-            return 0
-
-    def get_customer_details(self, obj):
-        print("obj ",obj)
-        # details = Customers.objects.filter(id=obj.id)
-        # cust_id = Invoices.objects.filter(id=obj.id).first().customer.all().first().id
-
-        details = Customers.objects.filter(id= obj.customer)
-        # print(details)
-        if details.exists() :
-            # details = Customers.objects.filter(id=obj.id).order_by('id')
-            details = Customers.objects.filter(id= obj.customer).order_by('id')
-            response = CustomerSerializers(details,many=True)
-            return response.data
-        else :
-            print("0 customers ")
-            return 0
-
-    def get_items_details(self, obj):
-        # print("obj ",obj)
-        details = ItemsInvoice.objects.filter(invoiceId=obj.id)
-        # print(payement_details)
-        if details.exists() :
-            details = ItemsInvoice.objects.filter(invoiceId=obj.id).order_by('id')
-            response = ItemsInvoiceSerializers(details,many=True)
-            return response.data
-        else :
-            print("0 items")
-            return 0
-
-    def get_payement_details(self, obj):
-        # print("obj ",obj)
-        payement_details = PayemetHistory.objects.filter(invoice_id=obj.id)
-        # print(payement_details)
-        if payement_details.exists() :
-            payement_details = PayemetHistory.objects.filter(invoice_id=obj.id).order_by('id')
-            response = PayemetHistorySerializer(payement_details,many=True)
-            return response.data
-        else :
-            print("0 payement history ")
-            return 0
+    # def get_company_details(self, obj):
+    #     # print("obj ",obj)
+    #     # cmp_id = Invoices.objects.filter(id=obj.id).first().customer.all().first().id
+    #
+    #     details = Companies.objects.filter(id=obj.company)
+    #     # print(details)
+    #     print("invopice ",Companies.objects.filter(id=obj.company).first())
+    #     if details.exists() :
+    #         details = Companies.objects.filter(id=obj.company).order_by('id')
+    #         response = CompanySerializers(details,many=True)
+    #         return response.data
+    #     else :
+    #         print("0 companies")
+    #         return 0
+    #
+    # def get_customer_details(self, obj):
+    #     print("obj ",obj)
+    #     # details = Customers.objects.filter(id=obj.id)
+    #     # cust_id = Invoices.objects.filter(id=obj.id).first().customer.all().first().id
+    #
+    #     details = Customers.objects.filter(id= obj.customer)
+    #     # print(details)
+    #     if details.exists() :
+    #         # details = Customers.objects.filter(id=obj.id).order_by('id')
+    #         details = Customers.objects.filter(id= obj.customer).order_by('id')
+    #         response = CustomerSerializers(details,many=True)
+    #         return response.data
+    #     else :
+    #         print("0 customers ")
+    #         return 0
+    #
+    # def get_items_details(self, obj):
+    #     # print("obj ",obj)
+    #     details = ItemsInvoice.objects.filter(invoiceId=obj.id)
+    #     # print(payement_details)
+    #     if details.exists() :
+    #         details = ItemsInvoice.objects.filter(invoiceId=obj.id).order_by('id')
+    #         response = ItemsInvoiceSerializers(details,many=True)
+    #         return response.data
+    #     else :
+    #         print("0 items")
+    #         return 0
+    #
+    # def get_payement_details(self, obj):
+    #     # print("obj ",obj)
+    #     payement_details = PayemetHistory.objects.filter(invoice_id=obj.id)
+    #     # print(payement_details)
+    #     if payement_details.exists() :
+    #         payement_details = PayemetHistory.objects.filter(invoice_id=obj.id).order_by('id')
+    #         response = PayemetHistorySerializer(payement_details,many=True)
+    #         return response.data
+    #     else :
+    #         print("0 payement history ")
+    #         return 0
 

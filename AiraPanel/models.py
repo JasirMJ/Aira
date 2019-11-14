@@ -56,6 +56,9 @@ class Products(models.Model):
     additional_cess = models.CharField(max_length=12,null=True)
     second_name = models.CharField(max_length=12,null=True)
 
+
+
+
 class ItemsInvoice(models.Model):
     invoiceId = models.CharField(max_length=20)
     product_Id = models.CharField(max_length=20)
@@ -83,7 +86,7 @@ class Invoices(models.Model):
     total_amount = models.CharField(max_length=12,null=True)
     paid_amount = models.CharField(max_length=12,null=True)
     # product = models.ManyToManyField(Products)
-    items = models.ManyToManyField(ItemsInvoice)
+    items = models.ManyToManyField(ItemsInvoice,related_name="item_invoice")
     payement_history = models.ManyToManyField(PayemetHistory)
 
 class ItemsBilling(models.Model):

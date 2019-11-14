@@ -38,7 +38,10 @@ class InvoiceView(ListAPIView):
     serializer_class = InvoiceSerializers
 
     def get_queryset(self):
-        queryset = Invoices.objects.all().order_by('-id')
+        # queryset = Invoices.objects.prefetch_related('items').all().order_by('-id')
+        # queryset = Invoices.objects.all().order_by('-id')
+        queryset = Invoices.objects.raw('SELECT id, customer FROM airapanel_invoices ')
+        print(queryset.query)
         return queryset
     def post(self,reqeust):
         try:

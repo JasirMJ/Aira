@@ -381,7 +381,26 @@ class CustomerView(ListAPIView):
         return queryset
 
     def post(self, request):
+
         name = self.request.POST.get('name', '')
+
+        address = self.request.POST.get('address', '')
+        country = self.request.POST.get('country', '')
+        state = self.request.POST.get('state', '')
+        city_one = self.request.POST.get('city_one', '')
+        city_two = self.request.POST.get('city_two', '')
+        phone = self.request.POST.get('phone', '')
+        mobile = self.request.POST.get('mobile', '')
+        job_position = self.request.POST.get('job_position', '')
+        email = self.request.POST.get('email', '')
+
+        if(Customers.objects.exists()):
+            aira_code = 'CUST'+str(Customers.objects.last().id+1)
+            print(aira_code)
+        else:
+            aira_code = 'CUST'+'1'
+        print(aira_code)
+
         if name == "" or not name:
             msg = "required name"
             return Response(
@@ -394,6 +413,17 @@ class CustomerView(ListAPIView):
 
         obj = Customers()
         obj.name = name
+        obj.aira_code = aira_code
+        obj.address = address
+        obj.country = country
+        obj.state = state
+        obj.city_one = city_one
+        obj.city_two = city_two
+        obj.phone = phone
+        obj.mobile = mobile
+        obj.job_position = job_position
+        obj.email = email
+
         try:
             obj.save()
 

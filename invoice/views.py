@@ -39,13 +39,12 @@ class InvoiceView(ListAPIView):
 
     def get_queryset(self):
         # queryset = Invoices.objects.prefetch_related('items').all().order_by('-id')
-        # queryset = Invoices.objects.all().order_by('-id')
-        queryset = Invoices.objects.raw('SELECT id, customer FROM airapanel_invoices ')
+        queryset = Invoices.objects.all().order_by('-id')
+        # queryset = Invoices.objects.raw('SELECT id, customer FROM airapanel_invoices ')
         print(queryset.query)
         return queryset
     def post(self,reqeust):
         try:
-
             cst_id = self.request.POST.get('cst_id','')
             due_date = self.request.POST.get('due_date', '')
             cmp_id = self.request.POST.get('cmp_id','')
@@ -53,12 +52,7 @@ class InvoiceView(ListAPIView):
             total_amount = self.request.POST.get('total_amount')
             paid_amount = float(self.request.POST.get('paid_amount','0'))
 
-
-
-
-
             items = self.request.POST.get('items','')
-
             items = json.loads(items)
             # the result is a Python dictionary:
             # ItemsInvoice.objects.raw(
@@ -76,7 +70,10 @@ class InvoiceView(ListAPIView):
             inv_obj.paid_amount = paid_amount
             inv_obj.customer= cmp_id
             inv_obj.company= cst_id
-
+            cust_name = Customers.objects.filter(id=cst_id).first().name
+            cmp_name = Companies.objects.filter(id=cst_id).first().name
+            inv_obj.customer_name = cust_name
+            inv_obj.company_name = cmp_name
             inv_obj.save()
 
             print(INFO,"invoice id ",inv_obj.id)

@@ -23,14 +23,10 @@ class Bill(ListAPIView):
         try:
 
             cst_id = self.request.POST.get('cst_id','')
-            due_date = self.request.POST.get('due_date', '')
             cmp_id = self.request.POST.get('cmp_id','')
-            status = self.request.POST.get('status','posted')
             total_amount = self.request.POST.get('total_amount')
             paid_amount = self.request.POST.get('paid_amount','0')
-
             items = self.request.POST.get('items','')
-
             items = json.loads(items)
 
             # inv_obj = Invoices()

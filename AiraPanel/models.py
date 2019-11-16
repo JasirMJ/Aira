@@ -8,6 +8,19 @@ class Companies(models.Model):
 class Customers(models.Model):
     name = models.CharField(max_length=120,unique=True)
 
+    aira_code = models.CharField(max_length=120,unique=True,null=True)
+    address = models.CharField(max_length=120,null=True)
+    country = models.CharField(max_length=120,null=True)
+    state = models.CharField(max_length=120,null=True)
+    city_one = models.CharField(max_length=120,null=True)
+    city_two = models.CharField(max_length=120,null=True)
+    phone = models.CharField(max_length=20,null=True)
+    mobile = models.CharField(max_length=20,null=True)
+    job_position = models.CharField(max_length=100,null=True)
+    email = models.EmailField(null=True)
+
+
+
 class Categories(models.Model):
     name = models.CharField(max_length=120,unique=True)
 
@@ -79,9 +92,12 @@ class PayemetHistory(models.Model):
 class Invoices(models.Model):
     # invoiceid = models.CharField(max_length=12,null=True)
     customer = models.CharField(max_length=10,null=True)
+    customer_name = models.CharField(max_length=10,null=True)
+    company = models.CharField(max_length=10,null=True)
+    company_name = models.CharField(max_length=10,null=True)
+
     created = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(null=False)
-    company = models.CharField(max_length=10,null=True)
     status = models.CharField(max_length=20,null=True)
     total_amount = models.CharField(max_length=12,null=True)
     paid_amount = models.CharField(max_length=12,null=True)
@@ -103,7 +119,7 @@ class Billing(models.Model):
     payee = models.CharField(max_length=10)
     items = models.ManyToManyField(ItemsBilling)
 
-
-
+# class SaleOrder(models.Model)
+    
 
 

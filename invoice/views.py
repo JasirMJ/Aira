@@ -44,40 +44,206 @@ class InvoiceView(ListAPIView):
         print(queryset.query)
         return queryset
     def post(self,reqeust):
+
+        cst_id = self.request.POST.get('cst_id','')
+        due_date = self.request.POST.get('due_date', '')
+        cmp_id = self.request.POST.get('cmp_id','')
+        total_amount = self.request.POST.get('total_amount')
+        paid_amount = float(self.request.POST.get('paid_amount','0'))
+
+        # quotation = self.request.POST.get('quotation',0)
+        # sales_order = self.request.POST.get('sales_order',0)
+        # invoice = self.request.POST.get('invoice',0)
+        #
+        # status = self.request.POST.get('status','posted')
+        # quotation_status = self.request.POST.get('quotation_status','')
+        # sales_order_status = self.request.POST.get('sales_order_status','')
+        # invoice_status = self.request.POST.get('invoice_status','')
+
+        items = self.request.POST.get('items','')
+        items = json.loads(items)
+
+        action = self.request.POST.get('action')
+
+        if action == "" or not action:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE:"Required 'action' ",
+                    CODE:"d1e23rf1",
+                }
+            )
+
+
+        # the result is a Python dictionary:
+        # ItemsInvoice.objects.raw(
+        #     "INSERT INTO airapanel_itemsinvoice (invoiceId, item_price, tax) "
+        #     # "VALUES ("'inv_obj.id'",  )"
+        #     "VALUES ("'7'","'32'"," '23' ")"
+        # )
+        # for x in Invoices.objects.raw("SELECT * FROM airapanel_invoices"):
+        #     print(x.id)
+
+        inv_obj = Invoices()
+        inv_obj.due_date = due_date
+        inv_obj.total_amount = total_amount
+        inv_obj.paid_amount = paid_amount
+        inv_obj.customer= cmp_id
+        inv_obj.company= cst_id
+        cust_name = Customers.objects.filter(id=cst_id).first().name
+        cmp_name = Companies.objects.filter(id=cst_id).first().name
+        inv_obj.customer_name = cust_name
+        inv_obj.company_name = cmp_name
+
+        if action == "quotation_save":
+            msg = " Action "+ action
+
+            inv_obj.quotation = 1
+            # inv_obj.sales_order = 0
+            # inv_obj.invoice = 0
+
+            inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            # inv_obj.invoice_status = ''
+
+        elif action == "quotation_send_email":
+            msg = " Action "+ action
+            # sendemailfunction()
+
+
+            inv_obj.quotation = 1
+            # inv_obj.sales_order = 0
+            # inv_obj.invoice = 0
+
+            inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            # inv_obj.invoice_status = ''
+
+        elif action == "quotation_cancel":
+            msg = " Action "+ action
+
+            inv_obj.quotation = -1
+            inv_obj.sales_order = 0
+            inv_obj.invoice = 0
+
+            inv_obj.quotation_status = "Canceled"
+            # inv_obj.sales_order_status = ''
+            # inv_obj.invoice_status = ''
+
+        elif action == "quotation_confirm":
+            msg = " Action " + action
+
+            # inv_obj.quotation = 1
+            # inv_obj.sales_order = 1
+            inv_obj.invoice = 1
+
+            inv_obj.quotation_status = "sales_order"
+            inv_obj.sales_order_status = "to_invoice"
+            inv_obj.invoice_status = ''
+
+        elif action == "set_to_quotation":
+            msg = " Action "+ action
+
+            inv_obj.quotation = 1
+            # inv_obj.sales_order = 0
+            # inv_obj.invoice = 0
+
+            inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            # inv_obj.invoice_status = ''
+
+
+
+        elif action == "invoice_save":
+            msg = " Action "+ action
+
+            # inv_obj.quotation = 0
+            # inv_obj.sales_order = 0
+            inv_obj.invoice = 1
+
+            inv_obj.quotation_status = "draft"
+            # inv_obj.sales_order_status = ''
+            # inv_obj.invoice_status = ''
+
+        elif action == "invoice_post":
+            msg = " Action "+ action
+
+            # inv_obj.quotation = 1
+            # inv_obj.sales_order = 0
+            inv_obj.invoice = 1
+
+            # inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            inv_obj.invoice_status = "posted"
+
+
+
+
+
+        elif action == "register_payement":
+            msg = " Action "+ action
+
+            # inv_obj.quotation = 0
+            # inv_obj.sales_order = 0
+            inv_obj.invoice = 1
+
+            # inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            '''if amount fully paid then status to paid else not paid'''
+            inv_obj.invoice_status = 'paid/not_paid'
+
+        elif action == "create_invoice_save":
+            msg = " Action "+ action
+
+            # inv_obj.quotation = 0
+            # inv_obj.sales_order = 0
+            inv_obj.invoice = 1
+
+            # inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            '''if amount fully paid then status to paid else not paid'''
+            inv_obj.invoice_status = 'draft'
+
+        elif action == "create_invoice_post":
+            msg = " Action "+ action
+
+            # inv_obj.quotation = 0
+            # inv_obj.sales_order = 0
+            inv_obj.invoice = 1
+
+            # inv_obj.quotation_status = "quotation"
+            # inv_obj.sales_order_status = ''
+            '''if amount fully paid then status to paid else not paid'''
+            inv_obj.invoice_status = 'posted'
+
+        # elif action == "":
+        #     msg = " Action "+ action
+        # elif action == "":
+        #     msg = " Action "+ action
+
+        else :
+            msg = " Action " + action
+            return Response(
+                {
+                    STATUS:False,
+                    MESSAGE:"undefined action name: '"+action+"'",
+                    CODE:"1235dd2",
+                    ACTION: msg,
+
+                }
+            )
+
+        # return Response(
+        #     {
+        #         STATUS: False,
+        #         CODE: "1235d12e",
+        #         ACTION: msg,
+        #
+        #     }
+        # )
         try:
-            cst_id = self.request.POST.get('cst_id','')
-            due_date = self.request.POST.get('due_date', '')
-            cmp_id = self.request.POST.get('cmp_id','')
-            status = self.request.POST.get('status','posted')
-            total_amount = self.request.POST.get('total_amount')
-            paid_amount = float(self.request.POST.get('paid_amount','0'))
-
-            items = self.request.POST.get('items','')
-            items = json.loads(items)
-            # the result is a Python dictionary:
-            # ItemsInvoice.objects.raw(
-            #     "INSERT INTO airapanel_itemsinvoice (invoiceId, item_price, tax) "
-            #     # "VALUES ("'inv_obj.id'",  )"
-            #     "VALUES ("'7'","'32'"," '23' ")"
-            # )
-            # for x in Invoices.objects.raw("SELECT * FROM airapanel_invoices"):
-            #     print(x.id)
-
-            inv_obj = Invoices()
-            inv_obj.due_date = due_date
-            inv_obj.status = status
-            inv_obj.total_amount = total_amount
-            inv_obj.paid_amount = paid_amount
-            inv_obj.customer= cmp_id
-            inv_obj.company= cst_id
-            cust_name = Customers.objects.filter(id=cst_id).first().name
-            cmp_name = Companies.objects.filter(id=cst_id).first().name
-            inv_obj.customer_name = cust_name
-            inv_obj.company_name = cmp_name
             inv_obj.save()
-
             print(INFO,"invoice id ",inv_obj.id)
-
             instance = []
             for item in items:
                 print(item['item'], "rs ", item['price'])
@@ -116,6 +282,7 @@ class InvoiceView(ListAPIView):
             # obj = ItemsInvoice()
             # obj.
             ItemsInvoice.objects.bulk_create(instance)
+
             for x in ItemsInvoice.objects.filter(invoiceId = inv_obj.id):
                 inv_obj.items.add(x)
 

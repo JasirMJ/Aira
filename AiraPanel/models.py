@@ -98,12 +98,25 @@ class Invoices(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(null=False)
-    status = models.CharField(max_length=20,null=True)
+
     total_amount = models.CharField(max_length=12,null=True)
     paid_amount = models.CharField(max_length=12,null=True)
     # product = models.ManyToManyField(Products)
     items = models.ManyToManyField(ItemsInvoice,related_name="item_invoice")
     payement_history = models.ManyToManyField(PayemetHistory)
+
+    # status = models.CharField(max_length=20, null=True)
+
+    quotation = models.IntegerField(default=0,null=False)
+    sales_order = models.IntegerField(default=0,null=False)
+    invoice = models.IntegerField(default=0,null=False)
+
+    quotation_status = models.CharField(max_length=20, null=True)
+    sales_order_status = models.CharField(max_length=20, null=True)
+    invoice_status = models.CharField(max_length=20, null=True)
+
+
+
 
 class ItemsBilling(models.Model):
     billingid = models.CharField(max_length=20)

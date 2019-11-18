@@ -178,8 +178,6 @@ class InvoiceView(ListAPIView):
 
 
 
-
-
         elif action == "register_payement":
             msg = " Action "+ action
 

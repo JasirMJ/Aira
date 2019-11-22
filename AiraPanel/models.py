@@ -49,7 +49,6 @@ class Products(models.Model):
 
     #details
     common_name = models.CharField(max_length=12, null=True)
-
     manufaturer = models.ManyToManyField(Companies)
     category = models.ManyToManyField(Categories)
     subcategory = models.ManyToManyField(SubCategories)
@@ -74,7 +73,7 @@ class Products(models.Model):
 
 class ItemsInvoice(models.Model):
     invoiceId = models.CharField(max_length=20)
-    product_Id = models.CharField(max_length=20)
+    product_Id = models.ForeignKey(Products,on_delete=models.SET_NULL,blank=True,null=True,related_name='iteminvoice_products')
     # customer = models.ManyToManyField(Customers)
     # company = models.ManyToManyField(Companies)
     item_price = models.CharField(max_length=20)
@@ -89,12 +88,14 @@ class PayemetHistory(models.Model):
     def __str__(self):
         return self.date_of_payement
 
+
+
 class Invoices(models.Model):
     # invoiceid = models.CharField(max_length=12,null=True)
-    customer = models.CharField(max_length=10,null=True)
-    customer_name = models.CharField(max_length=10,null=True)
-    company = models.CharField(max_length=10,null=True)
-    company_name = models.CharField(max_length=10,null=True)
+    customer = models.ForeignKey(Customers,on_delete=models.SET_NULL,blank=True,null=True,related_name='invoice_customer')
+    # customer_name = models.CharField(max_length=10,null=True)
+    company = models.ForeignKey(Companies,on_delete=models.SET_NULL,blank=True,null=True,related_name='invoice_company')
+    # company_name = models.CharField(max_length=10,null=True)
 
     created = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(null=False)
@@ -114,6 +115,36 @@ class Invoices(models.Model):
     quotation_status = models.CharField(max_length=20, null=True)
     sales_order_status = models.CharField(max_length=20, null=True)
     invoice_status = models.CharField(max_length=20, null=True)
+
+    status = models.CharField(max_length=20, null=True)
+
+
+#
+# class Invoices(models.Model):
+#     # invoiceid = models.CharField(max_length=12,null=True)
+#     customer = models.CharField(max_length=10,null=True)
+#     customer_name = models.CharField(max_length=10,null=True)
+#     company = models.CharField(max_length=10,null=True)
+#     company_name = models.CharField(max_length=10,null=True)
+#
+#     created = models.DateTimeField(auto_now_add=True)
+#     due_date = models.DateTimeField(null=False)
+#
+#     total_amount = models.CharField(max_length=12,null=True)
+#     paid_amount = models.CharField(max_length=12,null=True)
+#     # product = models.ManyToManyField(Products)
+#     items = models.ManyToManyField(ItemsInvoice,related_name="item_invoice")
+#     payement_history = models.ManyToManyField(PayemetHistory)
+#
+#     # status = models.CharField(max_length=20, null=True)
+#
+#     quotation = models.IntegerField(default=0,null=False)
+#     sales_order = models.IntegerField(default=0,null=False)
+#     invoice = models.IntegerField(default=0,null=False)
+#
+#     quotation_status = models.CharField(max_length=20, null=True)
+#     sales_order_status = models.CharField(max_length=20, null=True)
+#     invoice_status = models.CharField(max_length=20, null=True)
 
 
 

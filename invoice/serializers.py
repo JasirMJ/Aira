@@ -7,7 +7,10 @@ class PayemetHistorySerializer(serializers.ModelSerializer):
         model = PayemetHistory
         fields = '__all__'
 
-
+class CustomerSerializersInvoice(serializers.ModelSerializer):
+    class Meta:
+        model = Customers
+        fields = ['id','name','aira_code','address','email','mobile','phone']
 # class DashBoardSerializer(serializers.ModelSerializer):
 #     leave = serializers.SerializerMethodField()
 #     notification = serializers.SerializerMethodField()
@@ -33,6 +36,9 @@ class InvoiceSerializers(serializers.ModelSerializer):
 
     items = ItemsInvoiceSerializers(many=True)
     payement_history = PayemetHistorySerializer(many=True)
+    customer = CustomerSerializersInvoice()
+    company = CompanySerializers()
+
     # customer = CustomerSerializers(many=True)
 
     class Meta:

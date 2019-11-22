@@ -182,3 +182,13 @@ REST_FRAMEWORK = {
     #     'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     # ]
 }
+
+# '''/Sendgrid'''
+#
+# # SENDGRID_API_KEY = "Bearer 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"
+#
+# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# # SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+# SENDGRID_API_KEY = "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"
+# SENDGRID_SANDBOX_MODE_IN_DEBUG=False
+# '''Sendgrid/'''

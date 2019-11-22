@@ -55,6 +55,7 @@ class SubCategorySerializers(serializers.ModelSerializer):
         fields = '__all__'
 
 class ItemsInvoiceSerializers(serializers.ModelSerializer):
+
     class Meta:
         model = ItemsInvoice
         # fields = ['username', 'email']

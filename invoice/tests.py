@@ -4,6 +4,27 @@ import requests
 from django.test import TestCase
 
 
+import base64
+import os
+import json
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import (
+    Mail, Attachment, FileContent, FileName,
+    FileType, Disposition, ContentId)
+try:
+    # Python 3
+    import urllib.request as urllib
+except ImportError:
+    # Python 2
+    import urllib2 as urllib
+
+import os
+import json
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+
+
 # Create your tests here.
 # import json
 #
@@ -17,6 +38,10 @@ from django.test import TestCase
 # print(len(y))
 # for x in y:
 #     print(x['name'])
+
+''
+
+import pdfkit
 
 
 def SendMail(mail, username, password):
@@ -34,26 +59,7 @@ def SendMail(mail, username, password):
         total = total + items_price[x]
         items = items + '<tr class="item"><td>' + items_list[x] + '</td><td>' + str(items_price[x]) + '</td></tr>'
 
-    SUBJECT = "Codedady Invoice"
-    url = "https://api.sendgrid.com/v3/mail/send"
-    data = {
-        "personalizations": [
-            {
-                "to": [
-                    {
-                        "email": mail,
-                    }
-                ]
-            }
-        ],
-        "from": {
-            "email": "aira.admin@no-replay.com"
-        },
-        "subject": SUBJECT,
-        "content": [
-            {
-                "type": "text/html",
-                "value": '''
+    template = '''
 
     <!doctype html>
 <html>
@@ -233,8 +239,66 @@ def SendMail(mail, username, password):
     </div>
 </body>
 </html>
+'''
 
-                    '''
+
+    path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+    # pdfkit.from_url("http://google.com", "out.pdf", configuration=config)
+
+    # pdfkit.from_string(template, 'jasir1.pdf', configuration=config)
+    # attachement = open("jasir1.pdf", "rb")
+    # # at = open()
+    # print(attachement)
+
+    SUBJECT = "Codedady Invoice"
+    url = "https://api.sendgrid.com/v3/mail/send"
+
+
+
+    cwd = os.getcwd()  # Get the current working directory (cwd)
+    files = os.listdir(cwd)  # Get all the files in that directory
+    print("Files in %r: %s" % (cwd, files))
+
+    file_path = 'jasir1.pdf'
+    with open(file_path, 'rb') as f:
+        data = f.read()
+        f.close()
+    encoded = base64.b64encode(data).decode()
+
+
+    data = {
+        "personalizations": [
+            {
+                "to": [
+                    {
+                        "email": mail,
+                    }
+                ]
+            }
+        ],
+        "from": {
+            "email": "aira.admin@no-replay.com"
+        },
+
+        "subject": SUBJECT,
+
+        "attachments": [
+            {
+                "content": encoded,
+                # "content": "hi jasir",
+                "content_id": "ii_139db99fdb5c3704",
+                "disposition": "inline",
+                "filename": "jasir1.pdf",
+                "name": "jasir1",
+                "type": "pdf"
+            }
+        ],
+
+        "content": [
+            {
+                "type": "text/html",
+                "value": template
 
             }
         ]
@@ -245,9 +309,12 @@ def SendMail(mail, username, password):
         # 'Authorization': 'Bearer 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',
         'Authorization': 'Bearer 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',
     }
+
+
+
+
     r = requests.post(url, data=json.dumps(data), headers=headers)
     print(r)
 
-
 SendMail('jasirmj@gmail.com', "jasir", "password")
-# SendMail('anas.melepeediakkal@gmail.com', "jasir", "password")
+

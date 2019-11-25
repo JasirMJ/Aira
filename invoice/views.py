@@ -3,6 +3,7 @@ import sys
 import traceback
 from datetime import timezone, datetime
 
+import pdfkit
 from django.contrib.sites import requests
 from django.db.models import Q
 from django.http import HttpResponse
@@ -18,6 +19,27 @@ from AiraPanel.models import *
 from AiraPanel.global_variables import *
 from product.serializers import *
 from invoice.serializers import *
+
+'''<sendgrid>'''
+import base64
+import os
+import json
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import (
+    Mail, Attachment, FileContent, FileName,
+    FileType, Disposition, ContentId)
+try:
+    # Python 3
+    import urllib.request as urllib
+except ImportError:
+    # Python 2
+    import urllib2 as urllib
+
+import os
+import json
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+'''</sendgrid>'''
 
 
 def index(request):
@@ -766,17 +788,7 @@ class SendInvoice(ListAPIView):
 
 
 def send_invoice(id):
-
     invoice = Invoices.objects.filter(id=id)
-    # print(invoice)
-    # invoice = Invoices.objects.filter(id=id).first()
-    # print(invoice)
-    # print(invoice.items.first().id)
-
-    # for x in invoice.items:
-    #     print(x.first().id)
-
-    # item = In
     items = "<tr class='heading'> <td> Item </td> <td> Price </td>  </tr>"
     total = 0.0
     invoice_number = 0000
@@ -790,21 +802,14 @@ def send_invoice(id):
     address_to = {
         "to": "customer1",
         "company": "fb",
-        # "place": "Angadippuram",
     }
     for x in invoice:
         invoice_number = x.id
         created = x.created.strftime('%d %B %Y')
         due_date = x.due_date.strftime('%d %B %Y')
-
         address_to['to'] = x.customer.name
         address_to['company'] = x.company.name
 
-
-        # print("company.name :", )
-        # print("customer name :", x.customer.name)
-        # print("customer email :", x.customer.email)
-        # print("invoice id :", x.id)
         iteminv_obj = ItemsInvoice.objects.filter(invoiceId=x.id)
         # print("iteminv_obj :", iteminv_obj)
         for y in iteminv_obj:
@@ -817,7 +822,7 @@ def send_invoice(id):
         # print(payement_obj)
         for payement in payement_obj:
             payements = payements + '<tr><td>'+payement.date_of_payement.strftime("%d-%m-%y")+'</td><td>'+str(payement.amount)+'</td></tr>'
-            print(payements)
+            # print(payements)
 
             # print("item price :", y.item_price)
             # print("product_Id :", y.product_Id)
@@ -849,6 +854,197 @@ def send_invoice(id):
     # for x in range(1, 10):
     #     total = total + items_price[x]
     #     items = items + '<tr class="item"><td>' + items_list[x] + '</td><td>' + str(items_price[x]) + '</td></tr>'
+    template = '''
+    <!doctype html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>invoice</title>
+        <style>
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #eee;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .15);
+            font-size: 16px;
+            line-height: 24px;
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            color: #555;
+        }
+    
+        .invoice-box table {
+            width: 100%;
+            line-height: inherit;
+            text-align: left;
+        }
+    
+        .invoice-box table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+    
+        .invoice-box table tr td:nth-child(2) {
+            text-align: right;
+        }
+    
+        .invoice-box table tr.top table td {
+            padding-bottom: 20px;
+        }
+    
+        .invoice-box table tr.top table td.title {
+            font-size: 45px;
+            line-height: 45px;
+            color: #333;
+        }
+    
+        .invoice-box table tr.information table td {
+            padding-bottom: 40px;
+        }
+    
+        .invoice-box table tr.heading td {
+            background: #eee;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+    
+        .invoice-box table tr.details td {
+            padding-bottom: 20px;
+        }
+    
+        .invoice-box table tr.item td{
+            border-bottom: 1px solid #eee;
+        }
+    
+        .invoice-box table tr.item.last td {
+            border-bottom: none;
+        }
+    
+        .invoice-box table tr.total td:nth-child(2) {
+            border-top: 2px solid #eee;
+            font-weight: bold;
+        }
+    
+        @media only screen and (max-width: 600px) {
+            .invoice-box table tr.top table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+    
+            .invoice-box table tr.information table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+        }
+    
+        /** RTL **/
+        .rtl {
+            direction: rtl;
+            font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+        }
+    
+        .rtl table {
+            text-align: right;
+        }
+    
+        .rtl table tr td:nth-child(2) {
+            text-align: left;
+        }
+        </style>
+    </head>
+    
+    <body>
+        <div class="invoice-box">
+            <table cellpadding="0" cellspacing="0">
+                <tr class="top">
+                    <td colspan="2">
+                        <table>
+                            <tr>
+                                <td class="title">
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTK4yHZUTNYyi-TEiXhxOy6TVF8CwMCvX9IiGp0Ta1aGyhuboYe&s" style="width:100px; max-width:300px;">
+                                </td>
+    
+                                <td>
+                                    Invoice #: '''+str(invoice_number)+'''<br>
+                                    Created: '''+str(created)+'''<br>
+                                    Due: '''+str(due_date)+'''
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr class="information">
+                    <td colspan="2">
+                        <table>
+                            <tr>
+                                <td>
+                                    '''+str(address_from['from'])+'''<br>
+                                    '''+str(address_from['company'])+''' <br>
+                                    '''+str(address_from['email'])+''' <br>
+                                </td>
+    
+                                <td>
+                                    '''+str(address_to['to'])+'''.<br>
+                                    '''+str(address_to['company'])+'''<br>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+    
+                
+                ''' + items + '''
+    
+    
+    
+                <tr class="total">
+                    <td></td>
+    
+                    <td>
+                       Total: &#x20b9;''' + str(total) + '''
+                    </td>
+                </tr>
+                <tr class="details">
+                    <td>
+                    </td>
+                    <td>
+                        <table>                          
+                            '''+payements+'''                         
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </body>
+    </html>
+'''
+
+    # message = Mail(
+    #     from_email='airatest.admin@no-replay.com',
+    #     to_emails= 'jasirmj@gmail.com' ,
+    #     subject="Codedady Invoice1",
+    #     html_content=template)
+
+    pdfname = "invoicetemp.pdf"
+    path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+    # pdfkit.from_url("http://google.com", "out.pdf", configuration=config)
+    pdfkit.from_string(template, pdfname, configuration=config)
+
+
+    # cwd = os.getcwd()  # Get the current working directory (cwd)
+    # files = os.listdir(cwd)  # Get all the files in that directory
+    # print("Files in %r: %s" % (cwd, files))
+
+    file_path = pdfname
+    with open(file_path, 'rb') as f:
+        data = f.read()
+        f.close()
+    encoded = base64.b64encode(data).decode()
+
+
 
     SUBJECT = "Codedady Invoice"
     url = "https://api.sendgrid.com/v3/mail/send"
@@ -858,6 +1054,7 @@ def send_invoice(id):
                 "to": [
                     {
                         "email": mail,
+                        # "email": 'anas.melepeediakkal@gmail.com',
                     }
                 ]
             }
@@ -866,203 +1063,22 @@ def send_invoice(id):
             "email": "aira.admin@no-replay.com"
         },
         "subject": SUBJECT,
+
+        "attachments": [
+            {
+                "content": encoded,
+                "content_id": "ii_139db99fdb5c3704",
+                "disposition": "inline",
+                "filename": pdfname,
+                "name": "jasir1",
+                "type": "pdf"
+            }
+        ],
+
         "content": [
             {
                 "type": "text/html",
-                "value": '''
-
-    <!doctype html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>invoice</title>
-
-    <style>
-    .invoice-box {
-        max-width: 800px;
-        margin: auto;
-        padding: 30px;
-        border: 1px solid #eee;
-        box-shadow: 0 0 10px rgba(0, 0, 0, .15);
-        font-size: 16px;
-        line-height: 24px;
-        font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-        color: #555;
-    }
-
-    .invoice-box table {
-        width: 100%;
-        line-height: inherit;
-        text-align: left;
-    }
-
-    .invoice-box table td {
-        padding: 5px;
-        vertical-align: top;
-    }
-
-    .invoice-box table tr td:nth-child(2) {
-        text-align: right;
-    }
-
-    .invoice-box table tr.top table td {
-        padding-bottom: 20px;
-    }
-
-    .invoice-box table tr.top table td.title {
-        font-size: 45px;
-        line-height: 45px;
-        color: #333;
-    }
-
-    .invoice-box table tr.information table td {
-        padding-bottom: 40px;
-    }
-
-    .invoice-box table tr.heading td {
-        background: #eee;
-        border-bottom: 1px solid #ddd;
-        font-weight: bold;
-    }
-
-    .invoice-box table tr.details td {
-        padding-bottom: 20px;
-    }
-
-    .invoice-box table tr.item td{
-        border-bottom: 1px solid #eee;
-    }
-
-    .invoice-box table tr.item.last td {
-        border-bottom: none;
-    }
-
-    .invoice-box table tr.total td:nth-child(2) {
-        border-top: 2px solid #eee;
-        font-weight: bold;
-    }
-
-    @media only screen and (max-width: 600px) {
-        .invoice-box table tr.top table td {
-            width: 100%;
-            display: block;
-            text-align: center;
-        }
-
-        .invoice-box table tr.information table td {
-            width: 100%;
-            display: block;
-            text-align: center;
-        }
-    }
-
-    /** RTL **/
-    .rtl {
-        direction: rtl;
-        font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-    }
-
-    .rtl table {
-        text-align: right;
-    }
-
-    .rtl table tr td:nth-child(2) {
-        text-align: left;
-    }
-    </style>
-</head>
-
-<body>
-    <div class="invoice-box">
-        <table cellpadding="0" cellspacing="0">
-            <tr class="top">
-                <td colspan="2">
-                    <table>
-                        <tr>
-                            <td class="title">
-                                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTK4yHZUTNYyi-TEiXhxOy6TVF8CwMCvX9IiGp0Ta1aGyhuboYe&s" style="width:100px; max-width:300px;">
-                            </td>
-
-                            <td>
-                                Invoice #: '''+str(invoice_number)+'''<br>
-                                Created: '''+str(created)+'''<br>
-                                Due: '''+str(due_date)+'''
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-
-            <tr class="information">
-                <td colspan="2">
-                    <table>
-                        <tr>
-                            <td>
-                                '''+str(address_from['from'])+'''<br>
-                                '''+str(address_from['company'])+''' <br>
-                                '''+str(address_from['email'])+''' <br>
-                            </td>
-
-                            <td>
-                                '''+str(address_to['to'])+'''.<br>
-                                '''+str(address_to['company'])+'''<br>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-
-            <tr class="heading">
-                <td>
-                    Payment Method
-                </td>
-
-                <td>
-                    Check #
-                </td>
-            </tr>
-
-            <tr class="details">
-                <td>
-                    Check
-                </td>
-
-                <td>
-                    1000
-                </td>
-            </tr>
-
-            ''' + items + '''
-
-
-
-            <tr class="total">
-                <td></td>
-
-                <td>
-                   Total: &#x20b9;''' + str(total) + '''
-                </td>
-            </tr>
-            <tr class="details">
-                <td>
-                    
-                </td>
-                
-                <td>
-                    <table>
-                        
-                        '''+payements+'''
-                        
-                    </table>
-                </td>
-            </tr>
-        </table>
-
-    </div>
-</body>
-</html>
-
-                    '''
+                "value": template
 
             }
         ]

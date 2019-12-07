@@ -390,6 +390,7 @@ class InvoiceView(ListAPIView):
     serializer_class = InvoiceSerializers
     def get_queryset(self):
         queryset = Invoices.objects.all().order_by('-id')
+
         return queryset
 
     def post(self, request):

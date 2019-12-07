@@ -19,6 +19,7 @@ def index(request):
 class ProductView(ListAPIView):
     serializer_class = ProductsSerializers
 
+
     def get_queryset(self):
         queryset = Products.objects.all().order_by('-id')
 

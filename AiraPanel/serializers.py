@@ -54,9 +54,17 @@ class SubCategorySerializers(serializers.ModelSerializer):
         # fields = ['username', 'email']
         fields = '__all__'
 
-class ItemsInvoiceSerializers(serializers.ModelSerializer):
+# class ItemsInvoiceSerializers(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = ItemsInvoice
+#         # fields = ['username', 'email']
+#         fields = '__all__'
+
+class Items_relationSerializers(serializers.ModelSerializer):
 
     class Meta:
-        model = ItemsInvoice
+        model = Items_relation
         # fields = ['username', 'email']
         fields = '__all__'
+

@@ -5,6 +5,7 @@ from datetime import timezone, datetime
 
 import pdfkit
 from django.contrib.sites import requests
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -47,10 +48,640 @@ def index(request):
 
 
 
-class InvoiceView(ListAPIView):
-    serializer_class = InvoiceSerializers
+
+class SalesView(ListAPIView):
+    serializer_class = SalesSerializers
 
     def get_queryset(self):
+        queryset = Sales.objects.all().order_by('-id')
+        return queryset
+
+    def post(self,request):
+        cst_id = self.request.POST.get('cst_id', '')
+        due_date = self.request.POST.get('due_date', '')
+        cmp_id = self.request.POST.get('cmp_id', '')
+        total_amount = self.request.POST.get('total_amount')
+        # paid_amount = float(self.request.POST.get('paid_amount', '0'))
+
+        items = self.request.POST.get('items', '')
+        items = json.loads(items)
+
+        action = self.request.POST.get('action')
+
+        # bill_type = self.request.POST.get('bill_type', '')
+
+        if action == "" or not action:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'action' ",
+                    CODE: "d1e23rf1",
+                }
+            )
+
+        sale_obj = Sales()
+        sale_obj.due_date = due_date
+        sale_obj.total_amount = total_amount
+        sale_obj.customer = Customers.objects.filter(id=cst_id).first()
+        sale_obj.company = Companies.objects.filter(id=cmp_id).first()
+
+        history_obj = History()
+
+
+
+        quotation = "Quotation"
+        nothing_to_invoice = "Noting to invoice"
+        cancelled = "Cancelled"
+        sale_order = "Sale order"
+        to_invoice = "To invoice"
+        quotation_send = "Quotation send"
+
+
+        if action == "quotation_save":
+            sale_obj.status = quotation
+            sale_obj.invoice_status = to_invoice
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation saved"
+
+        elif action == "quotation_send_email":
+            sale_obj.status = quotation_send
+            sale_obj.invoice_status = nothing_to_invoice
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation send as email"
+
+        elif action == "quotation_cancell":
+            sale_obj.status = cancelled
+            sale_obj.invoice_status = nothing_to_invoice
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation cancelled"
+
+        elif action == "quotation_confirm":
+            sale_obj.status = sale_order
+            sale_obj.invoice_status = to_invoice
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation confirmed"
+
+        elif action == "sale_save":
+            sale_obj.status = sale_order
+            sale_obj.invoice_status = to_invoice
+
+            history_obj.type = "saleorder"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "saleorder saved"
+
+        elif action == "sale_confirm":
+            sale_obj.status = sale_order
+            sale_obj.invoice_status = to_invoice
+
+            history_obj.type = "saleorder"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "saleorder created"
+
+        elif action == "sale_cancell":
+            sale_obj.status = ''
+            sale_obj.invoice_status = ''
+
+            history_obj.type = "saleorder"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "saleorder cancelled"
+
+        elif action == "sale_send_email":
+            sale_obj.status = ''
+            sale_obj.invoice_status = ''
+
+            history_obj.type = "saleorder"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "saleorder send as email"
+
+        else :
+            return Response(
+                {
+                    STATUS:False,
+                    MESSAGE:"Required action",
+                }
+            )
+
+        try:
+            # print("before :",sale_obj.id)
+            #
+            # print("after :", sale_obj.id)
+            # sale_obj.save()
+            # history_obj.sales_id = sale_obj.id
+            # print(sale_obj.id)
+            #
+            # history_obj.save()
+            #
+            # sale_obj.history.add(history_obj)
+
+            with transaction.atomic():
+                # This code executes inside a transaction.
+                print("after :", sale_obj.id)
+                sale_obj.save()
+                history_obj.sales_id = sale_obj.id
+                print(sale_obj.id)
+                history_obj.save()
+                sale_obj.history.add(history_obj)
+
+            print("sale obj saved")
+            print(INFO,"invoice id ",sale_obj.id)
+            instance = []
+            for item in items:
+                # print(Products.objects.filter(id=item['id']).first())
+                print(item['id'], "rs ", item['price'])
+                instance.append(
+                    Items_relation(
+                        sales_id=sale_obj.id,
+                        product_Id=Products.objects.filter(id=item['id']).first(),
+                        item_price=item['price'],
+                        tax=item['tax'],
+                    ),
+                )
+
+            print(instance)
+
+            Items_relation.objects.bulk_create(instance)
+
+            for x in Items_relation.objects.filter(sales_id = sale_obj.id):
+                sale_obj.items.add(x)
+
+            return Response(
+                {
+                    STATUS:True,
+                    MESSAGE:"New quotaion/sales added",
+                }
+            )
+        except Exception as e:
+            print("Excepction :"+str(e)+ " Line no :"+ str(format(sys.exc_info()[-1].tb_lineno)))
+            if sale_obj:
+                sale_obj.delete()
+
+            return Response(
+                {
+                    STATUS:False,
+                    "Excepction":str(e),
+                    "Line no":str(format(sys.exc_info()[-1].tb_lineno)),
+                    MESSAGE:"requred cst_id, due_date, cmp_id, status, total_amount, [paid_amount] ",
+                }
+            )
+
+    def put(self,request):
+
+        saleid = self.request.POST.get('saleid', '')
+        cst_id = self.request.POST.get('cst_id', '')
+        due_date = self.request.POST.get('due_date', '')
+        cmp_id = self.request.POST.get('cmp_id', '')
+        total_amount = self.request.POST.get('total_amount')
+        # paid_amount = float(self.request.POST.get('paid_amount', '0'))
+
+        items = self.request.POST.get('items', '')
+        items = json.loads(items)
+
+        action = self.request.POST.get('action')
+
+        # bill_type = self.request.POST.get('bill_type', '')
+        if saleid == "" or not saleid:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'saleid' ",
+                    CODE: "d1e23rfasd1",
+                }
+            )
+
+        if action == "" or not action:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'action' ",
+                    CODE: "d1e23rf1",
+                }
+            )
+
+        sale_obj = Sales.objects.filter(id = saleid).first()
+        if not sale_obj:
+            return Response(
+                {
+                    STATUS:False,
+                    MESSAGE:"No matching object found"
+                }
+            )
+
+        sale_obj.due_date = due_date
+        sale_obj.total_amount = total_amount
+        sale_obj.customer = Customers.objects.filter(id=cst_id).first()
+        sale_obj.company = Companies.objects.filter(id=cmp_id).first()
+
+        history_obj = History()
+
+        quotation = "Quotation"
+        nothing_to_invoice = "Noting to invoice"
+        cancelled = "Cancelled"
+        sale_order = "Sale order"
+        to_invoice = "To invoice"
+        quotation_send = "Quotation send"
+        fully_invoiced = "Fully invoiced"
+
+        if action == "quotation_edit":
+            # sale_obj.status = quotation
+            # sale_obj.invoice_status = to_invoice
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation edited"
+
+        elif action == "quotation_confirm":
+            # sale_obj.status = quotation_send
+            # sale_obj.invoice_status = nothing_to_invoice
+
+            history_obj.type = "saleorder"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "Nothing to invoice"
+
+        elif action == "create_invoice":
+            sale_obj.status = sale_order
+            sale_obj.invoice_status = fully_invoiced
+
+            history_obj.type = "invoice"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "saleorder to invoice"
+
+            # obj = Invoices()
+            invoice_obj = Invoices()
+            invoice_obj.due_date = due_date
+            invoice_obj.type = "invoice"
+            invoice_obj.total_amount = total_amount
+            invoice_obj.customer = Customers.objects.filter(id=cst_id).first()
+            invoice_obj.company = Companies.objects.filter(id=cmp_id).first()
+
+            items_obj = Items_relation.objects.filter(sales_id=sale_obj.id)
+            print("items_obj :",items_obj)
+
+
+
+            # print("items_obj :",items_obj)
+        else:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required action",
+                    CODE:"qwdwqdqwa"
+                }
+            )
+
+        try:
+
+            with transaction.atomic():
+
+
+
+                # This code executes inside a transaction.
+                print("after :", sale_obj.id)
+                sale_obj.save()
+                invoice_obj.save()
+                for x in items_obj:
+                    # x.invoice_id = invoice_obj.id
+                    invoice_obj.items.add(x)
+
+                Items_relation.objects.filter(sales_id=sale_obj.id).update(invoice_id=invoice_obj.id)
+
+                history_obj.sales_id = sale_obj.id
+                history_obj.invoice_id = invoice_obj.id
+
+                print(sale_obj.id)
+                history_obj.save()
+
+                sale_obj.history.add(history_obj)
+
+                # invoice_obj.items.add(sale_obj.items.id)
+
+            print("sale obj saved")
+            print(INFO, "invoice id ", sale_obj.id)
+
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "Quotaion/Sales updated",
+                }
+            )
+        except Exception as e:
+            print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
+            if sale_obj:
+                sale_obj.delete()
+
+            return Response(
+                {
+                    STATUS: False,
+                    "Excepction": str(e),
+                    "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
+                    MESSAGE: "requred cst_id, due_date, cmp_id, status, total_amount, [paid_amount] ",
+                }
+            )
+
+class InvoiceView(ListAPIView):
+    serializer_class = InvoiceSerializers
+    def get_queryset(self):
+        queryset = Invoices.objects.all().order_by('-id')
+        return queryset
+
+    def post(self, request):
+        cst_id = self.request.POST.get('cst_id', '')
+        due_date = self.request.POST.get('due_date', '')
+        cmp_id = self.request.POST.get('cmp_id', '')
+        total_amount = self.request.POST.get('total_amount')
+        paid_amount = float(self.request.POST.get('paid_amount', '0'))
+        type = self.request.POST.get('type', 'invoice')
+
+        items = self.request.POST.get('items', '')
+        items = json.loads(items)
+        action = self.request.POST.get('action')
+
+        if action == "" or not action:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'action' ",
+                    CODE: "d1e23rf1",
+                }
+            )
+
+        invoice_obj = Invoices()
+        invoice_obj.type = type
+        invoice_obj.due_date = due_date
+        invoice_obj.total_amount = total_amount
+        invoice_obj.paid_amount = paid_amount
+        invoice_obj.customer = Customers.objects.filter(id=cst_id).first()
+        invoice_obj.company = Companies.objects.filter(id=cmp_id).first()
+
+        history_obj = History()
+
+        # quotation = "Quotation"
+        # nothing_to_invoice = "Noting to invoice"
+        # cancelled = "Cancelled"
+        # sale_order = "Sale order"
+        # to_invoice = "To invoice"
+        # quotation_send = "Quotation send"
+
+        draft = "draft"
+        post = "posted"
+
+        if action == "invoice_save":
+            invoice_obj.status = draft
+            # invoice_obj.invoice_status = draft
+
+            history_obj.type = "invoice"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "invoice saved"
+
+        elif action == "invoice_post":
+            invoice_obj.status = post
+            # invoice_obj.invoice_status = post
+
+            history_obj.type = "invoice"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "invoice posted"
+
+        else:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required invoice action < invoice_save, invoice_post>]",
+                    CODE:"asddqwcaa",
+                }
+            )
+
+        try:
+
+            # if float(paid_amount) > 0.0 :
+            #     'if any advance amount paid, it will be recorded in payement history'
+            #     print("Advance paid")
+            #     description = 'advance'
+            #     # print(datetime.now())
+            #     ph_obj = PayemetHistory()
+            #     ph_obj.invoice_id = invoice_obj.id
+            #     ph_obj.date_of_payement = datetime.now()
+            #     ph_obj.amount = paid_amount
+            #     ph_obj.description = description
+            #     ph_obj.save()
+            #     invoice_obj.payement_history.add(ph_obj)
+
+            with transaction.atomic():
+                # This code executes inside a transaction.
+
+
+
+                invoice_obj.save()
+                print("Invoice saved")
+                history_obj.invoice_id = invoice_obj.id
+                print(invoice_obj.id)
+                history_obj.save()
+                print("History saved")
+                invoice_obj.history.add(history_obj)
+                print("Invoice added to history")
+
+                # if float(paid_amount) > 0.0:
+                #     'if any advance amount paid, it will be recorded in payement history'
+                #     print("Advance paid")
+                #     description = 'advance'
+                #     ph_obj = PayemetHistory()
+                #     ph_obj.invoice_id = invoice_obj.id
+                #     ph_obj.date_of_payement = invoice_obj.created
+                #     ph_obj.amount = paid_amount
+                #     ph_obj.description = description
+                #     ph_obj.save()
+                #     print("advance payement saved to payement history")
+                #     invoice_obj.payement_history.add(ph_obj)
+                #     print("Invoice added to payement history")
+
+            print(INFO, "invoice id ", invoice_obj.id)
+            instance = []
+            for item in items:
+                # print(Products.objects.filter(id=item['id']).first())
+                print(item['id'], "rs ", item['price'])
+                instance.append(
+                    Items_relation(
+                        invoice_id=invoice_obj.id,
+                        product_Id=Products.objects.filter(id=item['id']).first(),
+                        item_price=item['price'],
+                        tax=item['tax'],
+                    ),
+                )
+
+            print(instance)
+
+            Items_relation.objects.bulk_create(instance)
+            print("items added to items_relation")
+
+            for x in Items_relation.objects.filter(sales_id=invoice_obj.id):
+                invoice_obj.items.add(x)
+            print("invoice maped with items")
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "New invoice added",
+                }
+            )
+        except Exception as e:
+            print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
+            if invoice_obj:
+                invoice_obj.delete()
+                print("invoice_obj deleted")
+
+            if history_obj:
+                history_obj.delete()
+                print("history_obj deleted")
+
+            return Response(
+                {
+                    STATUS: False,
+                    "Excepction": str(e),
+                    "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
+                    MESSAGE: "requred cst_id, due_date, cmp_id, status, total_amount, [paid_amount] ",
+                }
+            )
+
+    def put(self, request):
+        return Response(
+            "Currently unavailable"
+        )
+        saleid = self.request.POST.get('saleid', '')
+        cst_id = self.request.POST.get('cst_id', '')
+        due_date = self.request.POST.get('due_date', '')
+        cmp_id = self.request.POST.get('cmp_id', '')
+        total_amount = self.request.POST.get('total_amount')
+        # paid_amount = float(self.request.POST.get('paid_amount', '0'))
+
+        type = float(self.request.POST.get('type', 'invoice'))
+
+        items = self.request.POST.get('items', '')
+        items = json.loads(items)
+
+        action = self.request.POST.get('action')
+
+        # bill_type = self.request.POST.get('bill_type', '')
+        if saleid == "" or not saleid:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'saleid' ",
+                    CODE: "d1e23rfasd1",
+                }
+            )
+
+        if action == "" or not action:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'action' ",
+                    CODE: "d1e23rf1",
+                }
+            )
+
+        sale_obj = Sales.objects.filter(id=saleid).first()
+        if not sale_obj:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "No matching object found"
+                }
+            )
+
+        sale_obj.due_date = due_date
+        sale_obj.total_amount = total_amount
+        sale_obj.customer = Customers.objects.filter(id=cst_id).first()
+        sale_obj.company = Companies.objects.filter(id=cmp_id).first()
+
+        history_obj = History()
+
+        quotation = "Quotation"
+        nothing_to_invoice = "Noting to invoice"
+        cancelled = "Cancelled"
+        sale_order = "Sale order"
+        to_invoice = "To invoice"
+        quotation_send = "Quotation send"
+        fully_invoiced = "Fully invoiced"
+
+        if action == "quotation_edit":
+            # sale_obj.status = quotation
+            # sale_obj.invoice_status = to_invoice
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation edited"
+
+        elif action == "quotation_confirm":
+            # sale_obj.status = quotation_send
+            # sale_obj.invoice_status = nothing_to_invoice
+
+            history_obj.type = "saleorder"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "Nothing to invoice"
+
+        elif action == "create_invoice":
+            sale_obj.status = sale_order
+            sale_obj.invoice_status = fully_invoiced
+
+            history_obj.type = "quotation"
+            history_obj.modified_at = datetime.now()
+            history_obj.description = "quotation cancelled"
+        else:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required action",
+                    CODE: "qwdwqdqwa"
+                }
+            )
+
+        try:
+
+            with transaction.atomic():
+                # This code executes inside a transaction.
+                print("after :", sale_obj.id)
+                sale_obj.save()
+                history_obj.sales_id = sale_obj.id
+                print(sale_obj.id)
+                history_obj.save()
+                sale_obj.history.add(history_obj)
+
+            print("sale obj saved")
+            print(INFO, "invoice id ", sale_obj.id)
+
+            return Response(
+                {
+                    STATUS: True,
+                    MESSAGE: "Quotaion/Sales updated",
+                }
+            )
+        except Exception as e:
+            print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
+            if sale_obj:
+                sale_obj.delete()
+
+            return Response(
+                {
+                    STATUS: False,
+                    "Excepction": str(e),
+                    "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
+                    MESSAGE: "requred cst_id, due_date, cmp_id, status, total_amount, [paid_amount] ",
+                }
+            )
+
+
+class InvoiceViewOld(ListAPIView):
+    # serializer_class = InvoiceSerializers
+
+    def get_queryset(self):
+
 
         type = self.request.GET['type']
         queryset = Invoices.objects.all().order_by('-id')
@@ -81,9 +712,8 @@ class InvoiceView(ListAPIView):
         # queryset = Invoices.objects.raw('SELECT id, customer FROM airapanel_invoices ')
             print(queryset.query)
             return queryset
-
     def post(self,reqeust):
-
+        return Response("Not working")
 
 
         cst_id = self.request.POST.get('cst_id','')
@@ -97,6 +727,8 @@ class InvoiceView(ListAPIView):
 
         action = self.request.POST.get('action')
 
+        bill_type = self.request.POST.get('bill_type','')
+
         if action == "" or not action:
             return Response(
                 {
@@ -106,7 +738,14 @@ class InvoiceView(ListAPIView):
                 }
             )
 
-
+        if bill_type == "" or not bill_type:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE:"Required 'bill_type' ",
+                    CODE:"d1e23rfas1",
+                }
+            )
         # the result is a Python dictionary:
         # ItemsInvoice.objects.raw(
         #     "INSERT INTO airapanel_itemsinvoice (invoiceId, item_price, tax) "
@@ -127,33 +766,50 @@ class InvoiceView(ListAPIView):
         # inv_obj.customer_name = cust_name
         # inv_obj.company_name = cmp_name
 
+
+        type_obj = Type_of_voucher()
+
         if action == "quotation_save":
             msg = " Action "+ action
 
-            inv_obj.quotation = 1
-            # inv_obj.sales_order = 0
-            # inv_obj.invoice = 0
+            type_obj.modified = datetime. now()
+            unique_id = 'asd'
+            type = bill_type
+            status = "quotation"
 
-            inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            # inv_obj.invoice_status = ''
+            # inv_obj.quotation = 1
+            # # inv_obj.sales_order = 0
+            # # inv_obj.invoice = 0
+            #
+            # inv_obj.quotation_status = "quotation"
+            # # inv_obj.sales_order_status = ''
+            # # inv_obj.invoice_status = ''
 
         elif action == "quotation_send_email":
             msg = " Action "+ action
             # sendemailfunction()
+            type_obj.modified = datetime.now()
+            unique_id = 'asd'
+            type = bill_type
+            status = "quotation_send"
 
-            inv_obj.quotation = 1
-            # inv_obj.sales_order = 0
-            # inv_obj.invoice = 0
-
-            inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            # inv_obj.invoice_status = ''
+            # inv_obj.quotation = 1
+            # # inv_obj.sales_order = 0
+            # # inv_obj.invoice = 0
+            #
+            # inv_obj.quotation_status = "quotation_send"
+            # # inv_obj.sales_order_status = ''
+            # # inv_obj.invoice_status = ''
 
         elif action == "quotation_confirm":
             msg = " Action " + action
+            type_obj.modified = datetime.now()
+            unique_id = 'asd'
+            type = bill_type
+            status = "quotation_send"
 
-            # inv_obj.quotation = 1
+
+            inv_obj.quotation = 1
             inv_obj.sales_order = 1
             # inv_obj.invoice = 1
 
@@ -205,6 +861,8 @@ class InvoiceView(ListAPIView):
 
                 }
             )
+
+
 
         # return Response(
         #     {
@@ -280,6 +938,7 @@ class InvoiceView(ListAPIView):
                 ph_obj.description = description
                 ph_obj.save()
                 inv_obj.payement_history.add(ph_obj)
+
             return Response(
                 {
                     STATUS:True,
@@ -295,6 +954,7 @@ class InvoiceView(ListAPIView):
                 }
             )
         except Exception as e:
+            print("Excepction :"+str(e)+ " Line no :"+ str(format(sys.exc_info()[-1].tb_lineno)))
             inv_obj.delete()
             return Response(
                 {
@@ -304,7 +964,7 @@ class InvoiceView(ListAPIView):
                 }
             )
     def put(self,reqeust):
-
+        return Response("not owrking")
         invoice_id = self.request.POST.get('id')
 
         cst_id = self.request.POST.get('cst_id', '')
@@ -467,6 +1127,7 @@ class InvoiceView(ListAPIView):
                 }
             )
     def delete(self,reqeust):
+        return Response("Not workg")
         delete = self.request.POST.get('delete','')
         if delete == 'delete':
             Invoices.objects.all().delete()
@@ -489,194 +1150,199 @@ class InvoiceView(ListAPIView):
             }
         )
 
-class InvoiceAction(ListAPIView):
-    serializer_class = InvoiceSerializers
 
 
-    def get(self,request):
-        return Response(
-            {
-                STATUS:True,
-                MESSAGE:"invoice actions [quotation_save, quotation_send_email, quotation_confirm, quotation_cancel, set_to_quotation, invoice_save, invoice_post, invoice_cancel]",
 
-            }
-        )
-    def put(self,request):
-        action = self.request.POST.get('action','')
-        id = self.request.POST.get('id')  #invoice id
 
-        if action == '' or not action:
-            return Response(
-                {
-                    STATUS:False,
-                    MESSAGE:"required action",
-                    CODE:"1232f3",
-                }
-            )
 
-        if id == '' or not id:
-            return Response(
-                {
-                    STATUS:False,
-                    MESSAGE:"required id",
-                    CODE:"1qw2f33",
-                }
-            )
 
-        inv_obj = Invoices.objects.filter(id=id)
-        if not inv_obj.exists():
-            return Response(
-                {
-                    STATUS:False,
-                    MESSAGE:"No such invoice data with id ",
-                    CODE:"jn0231",
-                }
-            )
-
-        else:
-            inv_obj = inv_obj.first()
-
-        if action == "quotation_save":
-            msg = " Action "+ action
-
-            inv_obj.quotation = 1
-            # inv_obj.sales_order = 0
-            # inv_obj.invoice = 0
-
-            inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            # inv_obj.invoice_status = ''
-
-        elif action == "quotation_send_email":
-            msg = " Action "+ action
-
-            inv_obj.quotation = 1
-            # inv_obj.sales_order = 0
-            # inv_obj.invoice = 0
-
-            inv_obj.quotation_status = "quotation"
-            send_invoice(id)
-
-            # inv_obj.sales_order_status = ''
-            # inv_obj.invoice_status = ''
-
-        elif action == "quotation_confirm":
-            msg = " Action " + action
-
-            # inv_obj.quotation = 1
-            inv_obj.sales_order = 1
-            # inv_obj.invoice = 1
-
-            inv_obj.quotation_status = "sales_order"
-            inv_obj.sales_order_status = "to_invoice"
-            inv_obj.invoice_status = ''
-
-        elif action == "quotation_cancel":
-            msg = " Action "+ action
-
-            inv_obj.quotation = -1
-            inv_obj.sales_order = 0
-            inv_obj.invoice = 0
-
-            inv_obj.quotation_status = "Canceled"
-            # inv_obj.sales_order_status = ''
-            # inv_obj.invoice_status = ''
-
-        elif action == "set_to_quotation":
-            msg = " Action "+ action
-
-            inv_obj.quotation = 1
-            # inv_obj.sales_order = 0
-            # inv_obj.invoice = 0
-
-            inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            # inv_obj.invoice_status = ''
-
-        elif action == "invoice_save":
-            msg = " Action "+ action
-
-            # inv_obj.quotation = 0
-            # inv_obj.sales_order = 0
-            inv_obj.invoice = 1
-
-            # inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            '''if amount fully paid then status to paid else not paid'''
-            inv_obj.invoice_status = 'draft'
-
-        # elif action == "register_payement":
-        #     msg = " Action "+ action
-        #
-        #     # inv_obj.quotation = 0
-        #     # inv_obj.sales_order = 0
-        #     # inv_obj.invoice = 1
-        #
-        #     # inv_obj.quotation_status = "quotation"
-        #     # inv_obj.sales_order_status = ''
-        #     '''if amount fully paid then status to paid else not paid'''
-        #     inv_obj.invoice_status = 'paid/not_paid'
-
-        elif action == "invoice_post":
-            msg = " Action "+ action
-
-            # inv_obj.quotation = 0
-            # inv_obj.sales_order = 0
-            inv_obj.invoice = 1
-
-            # inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            '''if amount fully paid then status to paid else not paid'''
-            inv_obj.invoice_status = 'posted'
-
-        elif action == "invoice_cancel":
-            msg = " Action "+ action
-
-            # inv_obj.quotation = 0
-            # inv_obj.sales_order = 0
-            inv_obj.invoice = -1
-
-            # inv_obj.quotation_status = "quotation"
-            # inv_obj.sales_order_status = ''
-            '''if amount fully paid then status to paid else not paid'''
-            inv_obj.invoice_status = 'cancelled'
-
-        # elif action == "":
-        #     msg = " Action "+ action
-        # elif action == "":
-        #     msg = " Action "+ action
-
-        else :
-            msg = " Action " + action
-            return Response(
-                {
-                    STATUS:False,
-                    MESSAGE:"undefined action name: '"+action+"'",
-                    CODE:"1235dd2",
-                    ACTION: msg,
-
-                }
-            )
-
-        try:
-            inv_obj.save()
-
-            return Response(
-                {
-                    STATUS:True,
-                    MESSAGE:action+ " completed",
-                }
-            )
-        except Exception as e:
-            return Response(
-                {
-                    STATUS: True,
-                    MESSAGE: action + " not completed",
-                    CODE:"674722f",
-
-                }
-            )
-
+#
+# class InvoiceAction(ListAPIView):
+#     serializer_class = InvoiceSerializers
+#
+#
+#     def get(self,request):
+#         return Response(
+#             {
+#                 STATUS:True,
+#                 MESSAGE:"invoice actions [quotation_save, quotation_send_email, quotation_confirm, quotation_cancel, set_to_quotation, invoice_save, invoice_post, invoice_cancel]",
+#             }
+#         )
+#     def put(self,request):
+#         action = self.request.POST.get('action','')
+#         id = self.request.POST.get('id')  #invoice id
+#
+#         if action == '' or not action:
+#             return Response(
+#                 {
+#                     STATUS:False,
+#                     MESSAGE:"required action",
+#                     CODE:"1232f3",
+#                 }
+#             )
+#
+#         if id == '' or not id:
+#             return Response(
+#                 {
+#                     STATUS:False,
+#                     MESSAGE:"required id",
+#                     CODE:"1qw2f33",
+#                 }
+#             )
+#
+#         inv_obj = Invoices.objects.filter(id=id)
+#         if not inv_obj.exists():
+#             return Response(
+#                 {
+#                     STATUS:False,
+#                     MESSAGE:"No such invoice data with id ",
+#                     CODE:"jn0231",
+#                 }
+#             )
+#
+#         else:
+#             inv_obj = inv_obj.first()
+#
+#         if action == "quotation_save":
+#             msg = " Action "+ action
+#             inv_obj.quotation = 1
+#             # inv_obj.sales_order = 0
+#             # inv_obj.invoice = 0
+#
+#             inv_obj.quotation_status = "quotation"
+#             # inv_obj.sales_order_status = ''
+#             # inv_obj.invoice_status = ''
+#
+#         elif action == "quotation_send_email":
+#             msg = " Action "+ action
+#
+#             inv_obj.quotation = 1
+#             # inv_obj.sales_order = 0
+#             # inv_obj.invoice = 0
+#
+#             inv_obj.quotation_status = "quotation"
+#             send_invoice(id)
+#
+#             # inv_obj.sales_order_status = ''
+#             # inv_obj.invoice_status = ''
+#
+#         elif action == "quotation_confirm":
+#             msg = " Action " + action
+#
+#             # inv_obj.quotation = 1
+#             inv_obj.sales_order = 1
+#             # inv_obj.invoice = 1
+#
+#             inv_obj.quotation_status = "sales_order"
+#             inv_obj.sales_order_status = "to_invoice"
+#             inv_obj.invoice_status = ''
+#
+#         elif action == "quotation_cancel":
+#             msg = " Action "+ action
+#
+#             inv_obj.quotation = -1
+#             inv_obj.sales_order = 0
+#             inv_obj.invoice = 0
+#
+#             inv_obj.quotation_status = "Canceled"
+#             # inv_obj.sales_order_status = ''
+#             # inv_obj.invoice_status = ''
+#
+#         elif action == "set_to_quotation":
+#             msg = " Action "+ action
+#
+#             inv_obj.quotation = 1
+#             # inv_obj.sales_order = 0
+#             # inv_obj.invoice = 0
+#
+#             inv_obj.quotation_status = "quotation"
+#             # inv_obj.sales_order_status = ''
+#             # inv_obj.invoice_status = ''
+#
+#         elif action == "invoice_save":
+#             msg = " Action "+ action
+#
+#             # inv_obj.quotation = 0
+#             # inv_obj.sales_order = 0
+#             inv_obj.invoice = 1
+#
+#             # inv_obj.quotation_status = "quotation"
+#             # inv_obj.sales_order_status = ''
+#             '''if amount fully paid then status to paid else not paid'''
+#             inv_obj.invoice_status = 'draft'
+#
+#         # elif action == "register_payement":
+#         #     msg = " Action "+ action
+#         #
+#         #     # inv_obj.quotation = 0
+#         #     # inv_obj.sales_order = 0
+#         #     # inv_obj.invoice = 1
+#         #
+#         #     # inv_obj.quotation_status = "quotation"
+#         #     # inv_obj.sales_order_status = ''
+#         #     '''if amount fully paid then status to paid else not paid'''
+#         #     inv_obj.invoice_status = 'paid/not_paid'
+#
+#         elif action == "invoice_post":
+#             msg = " Action "+ action
+#
+#             # inv_obj.quotation = 0
+#             # inv_obj.sales_order = 0
+#             inv_obj.invoice = 1
+#
+#             # inv_obj.quotation_status = "quotation"
+#             # inv_obj.sales_order_status = ''
+#             '''if amount fully paid then status to paid else not paid'''
+#             inv_obj.invoice_status = 'posted'
+#
+#         elif action == "invoice_cancel":
+#             msg = " Action "+ action
+#
+#             # inv_obj.quotation = 0
+#             # inv_obj.sales_order = 0
+#             inv_obj.invoice = -1
+#
+#             # inv_obj.quotation_status = "quotation"
+#             # inv_obj.sales_order_status = ''
+#             '''if amount fully paid then status to paid else not paid'''
+#             inv_obj.invoice_status = 'cancelled'
+#
+#         # elif action == "":
+#         #     msg = " Action "+ action
+#         # elif action == "":
+#         #     msg = " Action "+ action
+#
+#         else :
+#             msg = " Action " + action
+#             return Response(
+#                 {
+#                     STATUS:False,
+#                     MESSAGE:"undefined action name: '"+action+"'",
+#                     CODE:"1235dd2",
+#                     ACTION: msg,
+#
+#                 }
+#             )
+#
+#         try:
+#             inv_obj.save()
+#
+#             return Response(
+#                 {
+#                     STATUS:True,
+#                     MESSAGE:action+ " completed",
+#                 }
+#             )
+#         except Exception as e:
+#             return Response(
+#                 {
+#                     STATUS: True,
+#                     MESSAGE: action + " not completed",
+#                     CODE:"674722f",
+#
+#                 }
+#             )
+#
 
 
 class Payement(ListAPIView):
@@ -717,7 +1383,7 @@ class Payement(ListAPIView):
 
                 i_obj = i_obj.first()
                 total_amount = i_obj.total_amount
-                if i_obj.invoice_status == "paid":
+                if i_obj.status == "paid":
                     return Response(
                         {
                             STATUS:True,
@@ -736,10 +1402,10 @@ class Payement(ListAPIView):
 
 
                     if pending_amount <= 0:
-                        i_obj.invoice_status = "paid"
+                        i_obj.status = "paid"
                         msg = "thank you , you closed the invoice amount"
                     else:
-                        i_obj.invoice_status = "paritally_paid"
+                        i_obj.status = "paritally_paid"
                         msg = "thank you , we expecting your remaning due soon"
                     i_obj.paid_amount = float(i_obj.paid_amount) + float(amount)
 
@@ -785,9 +1451,18 @@ class SendInvoice(ListAPIView):
         pass
 
 
+class Test(ListAPIView):
+    def get(self,request):
+        obj1 = Table1(name="jasir1")
+        obj2 = Table2(name="jasir2")
+        # Table2().
 
+        obj = obj2+obj1
+        print(obj)
+        return Response(True)
 
 def send_invoice(id):
+    return "Not working"
     invoice = Invoices.objects.filter(id=id)
     items = "<tr class='heading'> <td> Item </td> <td> Price </td>  </tr>"
     total = 0.0
@@ -810,7 +1485,7 @@ def send_invoice(id):
         address_to['to'] = x.customer.name
         address_to['company'] = x.company.name
 
-        iteminv_obj = ItemsInvoice.objects.filter(invoiceId=x.id)
+        iteminv_obj = Sales.objects.filter(invoiceId=x.id)
         # print("iteminv_obj :", iteminv_obj)
         for y in iteminv_obj:
             total = total + float(y.item_price)
@@ -1028,6 +1703,8 @@ def send_invoice(id):
     #     html_content=template)
 
     pdfname = "invoicetemp.pdf"
+    
+
     path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
     config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
     # pdfkit.from_url("http://google.com", "out.pdf", configuration=config)

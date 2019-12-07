@@ -23,7 +23,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'b#1&i-^mj(o*or&c&l35jikrl_gob_uo&mrbs@0(8kf=y8=25g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     '192.168.0.104',
@@ -192,3 +193,8 @@ REST_FRAMEWORK = {
 # SENDGRID_API_KEY = "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"
 # SENDGRID_SANDBOX_MODE_IN_DEBUG=False
 # '''Sendgrid/'''
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 10
+}

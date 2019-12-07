@@ -7,7 +7,6 @@ class Companies(models.Model):
 
 class Customers(models.Model):
     name = models.CharField(max_length=120,unique=True)
-
     aira_code = models.CharField(max_length=120,unique=True,null=True)
     address = models.CharField(max_length=120,null=True)
     country = models.CharField(max_length=120,null=True)
@@ -18,8 +17,6 @@ class Customers(models.Model):
     mobile = models.CharField(max_length=20,null=True)
     job_position = models.CharField(max_length=100,null=True)
     email = models.EmailField(null=True)
-
-
 
 class Categories(models.Model):
     name = models.CharField(max_length=120,unique=True)
@@ -71,13 +68,20 @@ class Products(models.Model):
 
 
 
-class ItemsInvoice(models.Model):
-    invoiceId = models.CharField(max_length=20)
-    product_Id = models.ForeignKey(Products,on_delete=models.SET_NULL,blank=True,null=True,related_name='iteminvoice_products')
-    # customer = models.ManyToManyField(Customers)
-    # company = models.ManyToManyField(Companies)
-    item_price = models.CharField(max_length=20)
-    tax = models.CharField(max_length=10)
+# class ItemsInvoice(models.Model):
+#     invoiceId = models.CharField(max_length=20)
+#     product_Id = models.ForeignKey(Products,on_delete=models.SET_NULL,blank=True,null=True,related_name='iteminvoice_products')
+#     # customer = models.ManyToManyField(Customers)
+#     # company = models.ManyToManyField(Companies)
+#     item_price = models.CharField(max_length=20)
+#     tax = models.CharField(max_length=10)
+
+class Items_relation(models.Model):
+    invoice_id = models.CharField(max_length=20,null=True)
+    sales_id = models.CharField(max_length=20,null=True)
+    product_Id = models.ForeignKey(Products,on_delete=models.SET_NULL,blank=True,null=True,related_name='item_products')
+    item_price = models.CharField(max_length=20,null=True)
+    tax = models.CharField(max_length=10,null=True)
 
 class PayemetHistory(models.Model):
     invoice_id = models.CharField(max_length=12,null=True)
@@ -88,38 +92,53 @@ class PayemetHistory(models.Model):
     def __str__(self):
         return self.date_of_payement
 
+# class Type_of_voucher(models.Model):
+#     created = models.DateTimeField(auto_now_add=True)
+#     modified = models.DateTimeField(auto_now_add=True)
+#     unique_id = models.CharField(max_length=255,null=True)
+#     type = models.CharField(max_length=10,null=True)
+#     status = models.CharField(max_length=10,null=True)
 
+class History(models.Model):
+    # sales_id = models.ForeignKey(Sales, on_delete=models.CASCADE)
+    # invoice_id = models.ForeignKey(Sales, on_delete=models.CASCADE)
+
+    sales_id = models.CharField(max_length=20,null=True)
+    invoice_id = models.CharField(max_length=20,null=True)
+    type = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(null=True, blank=True)
+    description = models.CharField(max_length=255, null=True)
+
+class Sales(models.Model):
+    customer = models.ForeignKey(Customers, on_delete=models.SET_NULL, blank=True, null=True,
+                                 related_name='sales_customer')
+    company = models.ForeignKey(Companies, on_delete=models.SET_NULL, blank=True, null=True,
+                                related_name='sales_company')
+    created = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateTimeField(null=False)
+    total_amount = models.CharField(max_length=12, null=True)
+    items = models.ManyToManyField(Items_relation, related_name="sales_item")
+    status = models.CharField(max_length=20, null=True)
+    invoice_status = models.CharField(max_length=20, null=True)
+    history = models.ManyToManyField(History)
 
 class Invoices(models.Model):
     # invoiceid = models.CharField(max_length=12,null=True)
     customer = models.ForeignKey(Customers,on_delete=models.SET_NULL,blank=True,null=True,related_name='invoice_customer')
-    # customer_name = models.CharField(max_length=10,null=True)
     company = models.ForeignKey(Companies,on_delete=models.SET_NULL,blank=True,null=True,related_name='invoice_company')
-    # company_name = models.CharField(max_length=10,null=True)
-
     created = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(null=False)
-
     total_amount = models.CharField(max_length=12,null=True)
     paid_amount = models.CharField(max_length=12,null=True)
-    # product = models.ManyToManyField(Products)
-    items = models.ManyToManyField(ItemsInvoice,related_name="item_invoice")
+    items = models.ManyToManyField(Items_relation,related_name="invoice_item")
     payement_history = models.ManyToManyField(PayemetHistory)
-
-    # status = models.CharField(max_length=20, null=True)
-
-    quotation = models.IntegerField(default=0,null=False)
-    sales_order = models.IntegerField(default=0,null=False)
-    invoice = models.IntegerField(default=0,null=False)
-
-    quotation_status = models.CharField(max_length=20, null=True)
-    sales_order_status = models.CharField(max_length=20, null=True)
-    invoice_status = models.CharField(max_length=20, null=True)
-
     status = models.CharField(max_length=20, null=True)
+    history = models.ManyToManyField(History)
+    type = models.CharField(max_length=20,null=False)
 
 
-#
+
 # class Invoices(models.Model):
 #     # invoiceid = models.CharField(max_length=12,null=True)
 #     customer = models.CharField(max_length=10,null=True)
@@ -141,7 +160,7 @@ class Invoices(models.Model):
 #     quotation = models.IntegerField(default=0,null=False)
 #     sales_order = models.IntegerField(default=0,null=False)
 #     invoice = models.IntegerField(default=0,null=False)
-#
+
 #     quotation_status = models.CharField(max_length=20, null=True)
 #     sales_order_status = models.CharField(max_length=20, null=True)
 #     invoice_status = models.CharField(max_length=20, null=True)
@@ -167,3 +186,8 @@ class Billing(models.Model):
     
 
 
+class Table1(models.Model):
+    name = models.CharField(max_length=20,null=True)
+
+class Table2(models.Model):
+    name = models.CharField(max_length=20,null=True)

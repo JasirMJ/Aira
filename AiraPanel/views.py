@@ -493,7 +493,3 @@ class CustomerView(ListAPIView):
 
 
 
-
-
-
-

@@ -2,6 +2,11 @@ from rest_framework import serializers, exceptions
 from AiraPanel.models import *
 from AiraPanel.serializers import *
 
+class HistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = History
+        fields = '__all__'
+
 class PayemetHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = PayemetHistory
@@ -27,6 +32,18 @@ class CustomerSerializersInvoice(serializers.ModelSerializer):
 #             print("0 Leave ")
 #             return 0
 
+class SalesSerializers(serializers.ModelSerializer):
+    items = Items_relationSerializers(many=True)
+    customer = CustomerSerializersInvoice()
+    company = CompanySerializers()
+    history = HistorySerializer(many = True)
+
+    class Meta:
+        model = Sales
+        fields = '__all__'
+
+# class InvoiceSerializers(serializers.ModelSerializer):
+
 
 class InvoiceSerializers(serializers.ModelSerializer):
     # payement_details = serializers.SerializerMethodField()
@@ -34,10 +51,12 @@ class InvoiceSerializers(serializers.ModelSerializer):
     # company_details = serializers.SerializerMethodField()
     # items_details = serializers.SerializerMethodField()
 
-    items = ItemsInvoiceSerializers(many=True)
+    items = Items_relationSerializers(many=True)
     payement_history = PayemetHistorySerializer(many=True)
     customer = CustomerSerializersInvoice()
     company = CompanySerializers()
+    history = HistorySerializer(many = True)
+
 
     # customer = CustomerSerializers(many=True)
 

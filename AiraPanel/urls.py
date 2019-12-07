@@ -9,4 +9,5 @@ urlpatterns = [
     path('company/', views.CompanyView.as_view(), name="company"),
     path('subcategory/', views.SubCategoryView.as_view(), name="subcategory"),
     path('customer/', views.CustomerView.as_view(), name="customer"),
+    # path('table/', views.Table_data_view.as_view(), name="table"),
 ]

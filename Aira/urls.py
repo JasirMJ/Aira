@@ -26,4 +26,5 @@ urlpatterns = [
     path('product/', include('product.urls')),
     path('aira/',include('AiraPanel.urls')),
     path('invoice/',include('invoice.urls')),
+    path('purchase/',include('purchase.urls')),
 ]

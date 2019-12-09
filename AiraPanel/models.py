@@ -139,33 +139,6 @@ class Invoices(models.Model):
 
 
 
-# class Invoices(models.Model):
-#     # invoiceid = models.CharField(max_length=12,null=True)
-#     customer = models.CharField(max_length=10,null=True)
-#     customer_name = models.CharField(max_length=10,null=True)
-#     company = models.CharField(max_length=10,null=True)
-#     company_name = models.CharField(max_length=10,null=True)
-#
-#     created = models.DateTimeField(auto_now_add=True)
-#     due_date = models.DateTimeField(null=False)
-#
-#     total_amount = models.CharField(max_length=12,null=True)
-#     paid_amount = models.CharField(max_length=12,null=True)
-#     # product = models.ManyToManyField(Products)
-#     items = models.ManyToManyField(ItemsInvoice,related_name="item_invoice")
-#     payement_history = models.ManyToManyField(PayemetHistory)
-#
-#     # status = models.CharField(max_length=20, null=True)
-#
-#     quotation = models.IntegerField(default=0,null=False)
-#     sales_order = models.IntegerField(default=0,null=False)
-#     invoice = models.IntegerField(default=0,null=False)
-
-#     quotation_status = models.CharField(max_length=20, null=True)
-#     sales_order_status = models.CharField(max_length=20, null=True)
-#     invoice_status = models.CharField(max_length=20, null=True)
-
-
 
 
 class ItemsBilling(models.Model):
@@ -181,13 +154,9 @@ class Billing(models.Model):
     payer = models.CharField(max_length=10)
     payee = models.CharField(max_length=10)
     items = models.ManyToManyField(ItemsBilling)
-
-# class SaleOrder(models.Model)
-    
-
-
-class Table1(models.Model):
-    name = models.CharField(max_length=20,null=True)
-
-class Table2(models.Model):
-    name = models.CharField(max_length=20,null=True)
+#
+# class Purchase_Items_relation(models.Model):
+#
+#
+# class PurchaseContracts(models.Model):
+#     items = models.ManyToManyField(Purchase_Items_relation)

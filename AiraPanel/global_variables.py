@@ -1,4 +1,5 @@
 
+
 '''Declaring some Global Variable'''
 MESSAGE = "Message"
 ERROR = "Error"

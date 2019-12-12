@@ -65,9 +65,6 @@ class Products(models.Model):
     additional_cess = models.CharField(max_length=12,null=True)
     second_name = models.CharField(max_length=12,null=True)
 
-
-
-
 # class ItemsInvoice(models.Model):
 #     invoiceId = models.CharField(max_length=20)
 #     product_Id = models.ForeignKey(Products,on_delete=models.SET_NULL,blank=True,null=True,related_name='iteminvoice_products')
@@ -137,10 +134,6 @@ class Invoices(models.Model):
     history = models.ManyToManyField(History)
     type = models.CharField(max_length=20,null=False)
 
-
-
-
-
 class ItemsBilling(models.Model):
     billingid = models.CharField(max_length=20)
     product_Id = models.CharField(max_length=20)
@@ -155,8 +148,17 @@ class Billing(models.Model):
     payee = models.CharField(max_length=10)
     items = models.ManyToManyField(ItemsBilling)
 #
-# class Purchase_Items_relation(models.Model):
-#
-#
-# class PurchaseContracts(models.Model):
-#     items = models.ManyToManyField(Purchase_Items_relation)
+class Purchase_Items_relation(models.Model):
+    contract_id = models.CharField(max_length=20, null=True)
+    purchase_id = models.CharField(max_length=20, null=True)
+    product_Id = models.ForeignKey(Products, on_delete=models.SET_NULL, blank=True, null=True,
+                                   related_name='purchase_products')
+    item_price = models.CharField(max_length=20, null=True)
+    tax = models.CharField(max_length=10, null=True)
+
+class PurchaseContracts(models.Model):
+    items = models.ManyToManyField(Purchase_Items_relation)
+    contract_id = models.CharField(max_length=20,null=True)
+    vendors = models.ManyToManyField(Customers)
+    created = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField(null=True)

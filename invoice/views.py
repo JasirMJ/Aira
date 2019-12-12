@@ -1454,12 +1454,12 @@ class SendInvoice(ListAPIView):
 
 class Test(ListAPIView):
     def get(self,request):
-        obj1 = Table1(name="jasir1")
-        obj2 = Table2(name="jasir2")
+        # obj1 = Table1(name="jasir1")
+        # obj2 = Table2(name="jasir2")
         # Table2().
 
-        obj = obj2+obj1
-        print(obj)
+        # obj = obj2+obj1
+        # print(obj)
         return Response(True)
 
 def send_invoice(id):

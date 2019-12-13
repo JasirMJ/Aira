@@ -162,3 +162,16 @@ class PurchaseContracts(models.Model):
     vendors = models.ManyToManyField(Customers)
     created = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True)
+
+class PurchaseOrder(models.Model):
+    items = models.ManyToManyField(Purchase_Items_relation)
+    contract_referance = models.CharField(max_length=20, null=True)
+    vendors = models.ManyToManyField(Customers)
+    created = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20,null=True)
+    billing_status = models.CharField(max_length=20,null=True)
+    vendor_referance = models.CharField(max_length=20,null=True)
+    purchase_by = models.CharField(max_length=20,null=True)
+
+    # taxes = models.ManyToManyField()
+    # taxes = models.ManyToManyField()

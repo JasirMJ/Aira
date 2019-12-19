@@ -163,6 +163,15 @@ class PurchaseContracts(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField(null=True)
 
+class PurchasePayemetHistory(models.Model):
+    purchase_id = models.CharField(max_length=12,null=True)
+    date_of_payement = models.DateTimeField(null=False)
+    amount =models.CharField(max_length=12,null=True)
+    description =models.CharField(max_length=120,null=True)
+
+    def __str__(self):
+        return self.date_of_payement
+
 class PurchaseOrder(models.Model):
     items = models.ManyToManyField(Purchase_Items_relation)
     contract_referance = models.CharField(max_length=20, null=True)
@@ -172,6 +181,10 @@ class PurchaseOrder(models.Model):
     billing_status = models.CharField(max_length=20,null=True)
     vendor_referance = models.CharField(max_length=20,null=True)
     purchase_by = models.CharField(max_length=20,null=True)
+    payement_history = models.ManyToManyField(PurchasePayemetHistory)
+    total_amount = models.CharField(max_length=12, null=True)
+    paid_amount = models.CharField(max_length=12, null=True)
 
     # taxes = models.ManyToManyField()
     # taxes = models.ManyToManyField()
+

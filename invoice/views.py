@@ -460,24 +460,8 @@ class InvoiceView(ListAPIView):
             )
 
         try:
-
-            # if float(paid_amount) > 0.0 :
-            #     'if any advance amount paid, it will be recorded in payement history'
-            #     print("Advance paid")
-            #     description = 'advance'
-            #     # print(datetime.now())
-            #     ph_obj = PayemetHistory()
-            #     ph_obj.invoice_id = invoice_obj.id
-            #     ph_obj.date_of_payement = datetime.now()
-            #     ph_obj.amount = paid_amount
-            #     ph_obj.description = description
-            #     ph_obj.save()
-            #     invoice_obj.payement_history.add(ph_obj)
-
             with transaction.atomic():
                 # This code executes inside a transaction.
-
-
 
                 invoice_obj.save()
                 print("Invoice saved")
@@ -524,6 +508,18 @@ class InvoiceView(ListAPIView):
             for x in Items_relation.objects.filter(sales_id=invoice_obj.id):
                 invoice_obj.items.add(x)
             print("invoice maped with items")
+
+            if float(paid_amount) > 0.0 :
+                'if any advance amount paid, it will be recorded in payement history'
+                print("Advance paid")
+                description = 'advance'
+                ph_obj = PayemetHistory()
+                ph_obj.invoice_id = invoice_obj.id
+                ph_obj.date_of_payement = invoice_obj.created
+                ph_obj.amount = paid_amount
+                ph_obj.description = description
+                ph_obj.save()
+                invoice_obj.payement_history.add(ph_obj)
 
             return Response(
                 {

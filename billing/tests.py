@@ -27,4 +27,3 @@ from AiraPanel.models import *
 # from datetime import datetime
 # print(datetime. now())
 
-

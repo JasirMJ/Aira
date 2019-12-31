@@ -1,6 +1,8 @@
 from django.db import models
 
 # Create your models here.
+from django_bulk_update.manager import BulkUpdateManager
+
 
 class Companies(models.Model):
     name = models.CharField(max_length=120,unique=True)
@@ -64,6 +66,10 @@ class Products(models.Model):
     cess = models.CharField(max_length=12,null=True)
     additional_cess = models.CharField(max_length=12,null=True)
     second_name = models.CharField(max_length=12,null=True)
+
+    stock = models.FloatField(default=0.0)
+
+    objects = BulkUpdateManager()
 
 # class ItemsInvoice(models.Model):
 #     invoiceId = models.CharField(max_length=20)
@@ -187,4 +193,18 @@ class PurchaseOrder(models.Model):
 
     # taxes = models.ManyToManyField()
     # taxes = models.ManyToManyField()
+
+class Inventory(models.Model):
+    itemid = models.ForeignKey(Products, on_delete=models.PROTECT)
+    item_in = models.FloatField(default=0.0)
+    item_out = models.FloatField(default=0.0)
+    type = models.CharField(max_length=10)
+    created = models.DateTimeField(auto_now_add=True)
+    # quantity = models.FloatField()
+    # price = models.FloatField()
+    unit_price = models.FloatField()
+    barcodeid = models.CharField(max_length=50,null=True)
+
+
+
 

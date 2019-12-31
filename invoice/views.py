@@ -388,12 +388,14 @@ class SalesView(ListAPIView):
 
 class InvoiceView(ListAPIView):
     serializer_class = InvoiceSerializers
-    def get_queryset(self):
-        queryset = Invoices.objects.all().order_by('-id')
 
+    def get_queryset(self):
+        print("--------------  InvoiceView : GET  --------------")
+        queryset = Invoices.objects.all().order_by('-id')
         return queryset
 
     def post(self, request):
+        print("--------------  InvoiceView : POST  --------------")
         cst_id = self.request.POST.get('cst_id', '')
         due_date = self.request.POST.get('due_date', '')
         cmp_id = self.request.POST.get('cmp_id', '')
@@ -459,16 +461,117 @@ class InvoiceView(ListAPIView):
                 }
             )
 
+        instance = []
+
+        # instance for bulk insert for Inventory
+        inventory_instance = []
+
+        # to save item id for iteration purpose , used to specify in ORM
+        item_id = []
+
+        # to save items, and take data from it during iteration
+        items_list = []
+
+        stock_message = []
+        error_message = 0
+
+        for item in items:
+            item_obj = Products.objects.filter(id=item['id']).first()
+
+            available_stock = item_obj.stock
+            required_stock = item['qty']
+
+            # print(item_obj.name, " Available stock :", item_obj.stock)
+            # print(item_obj.name, " Required stock :", item['qty'])
+            if required_stock > available_stock:
+                stock_message.append(
+                    {
+                        'id': item_obj.id,
+                        'name': item_obj.name,
+                        'message': "O/S",
+                        'available':available_stock,
+                        'required':required_stock,
+                        CODE:"asdqwd21v",
+                    }
+                )
+                error_message = 1
+
+            # print(Products.objects.filter(id=item['id']).first())
+            # print(item['id'], "rs ", item['price'])
+
+            instance.append(
+                Items_relation(
+                    invoice_id=invoice_obj.id,
+                    product_Id=item_obj,
+                    item_price=item['price'],
+                    tax=item['tax'],
+                ),
+            )
+            print("Items_relation : ", item_obj.name," is added")
+
+            inventory_instance.append(
+                Inventory(
+                    itemid=item_obj,
+                    item_out=item['qty'],
+                    type="sale",
+                    unit_price=float(item['price']) * float(item['qty']),
+                    barcodeid="TEST_CODE"
+                )
+            )
+            print("Inventory : ",item_obj.name,"x",item['qty']," is added")
+
+            item_id.append(item['id'])
+            items_list.append(
+                {
+                    'id': item['id'],
+                    'qty': item['qty'],
+                }
+            )
+
+        if error_message == 1:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: stock_message
+                }
+            )
+        pdt_objs = Products.objects.filter(id__in=item_id)
+
+        # print("pdt_objs", pdt_objs)
+        x = 0
+
+        for pdt_obj in pdt_objs:
+            # print(pdt_obj.name, " old stock " + str(pdt_obj.stock))
+            pdt_obj.stock -= float(items_list[x]['qty'])
+            print(pdt_obj.stock," no of ",pdt_obj.name," took from ",pdt_obj.stock ,"remaing stock is ",pdt_obj.stock)
+            # print(str(items_list[x]['qty']) + ' was removed')
+            x += 1
+
+
+
+        # print(instance)
+
+
         try:
             with transaction.atomic():
                 # This code executes inside a transaction.
 
+
+                # Save all objects in 1 query
+                Products.objects.bulk_update(pdt_objs, ['stock'])  # updating stok in Product
+                print("Product stock updated")
+
+                Items_relation.objects.bulk_create(instance)
+                print("Items_relations created")
+
+
                 invoice_obj.save()
-                print("Invoice saved")
+                print("Invoice saved :",invoice_obj.id)
+
                 history_obj.invoice_id = invoice_obj.id
-                print(invoice_obj.id)
                 history_obj.save()
                 print("History saved")
+
                 invoice_obj.history.add(history_obj)
                 print("Invoice added to history")
 
@@ -486,40 +589,34 @@ class InvoiceView(ListAPIView):
                 #     invoice_obj.payement_history.add(ph_obj)
                 #     print("Invoice added to payement history")
 
+                for x in Items_relation.objects.filter(sales_id=invoice_obj.id):
+                    invoice_obj.items.add(x)
+                print("invoice maped with items")
+
+                if float(paid_amount) > 0.0:
+                    'if any advance amount paid, it will be recorded in payement history'
+                    print("Advance paid :",paid_amount)
+                    description = 'advance'
+                    ph_obj = PayemetHistory()
+                    ph_obj.invoice_id = invoice_obj.id
+                    ph_obj.date_of_payement = invoice_obj.created
+                    ph_obj.amount = paid_amount
+                    ph_obj.description = description
+                    ph_obj.save()
+                    print("PayementHistory : Created")
+
+                    invoice_obj.payement_history.add(ph_obj)
+                    print("Invoice added to PayementHistory")
+
             print(INFO, "invoice id ", invoice_obj.id)
-            instance = []
-            for item in items:
-                # print(Products.objects.filter(id=item['id']).first())
-                print(item['id'], "rs ", item['price'])
-                instance.append(
-                    Items_relation(
-                        invoice_id=invoice_obj.id,
-                        product_Id=Products.objects.filter(id=item['id']).first(),
-                        item_price=item['price'],
-                        tax=item['tax'],
-                    ),
-                )
 
-            print(instance)
 
-            Items_relation.objects.bulk_create(instance)
-            print("items added to items_relation")
+            # return Response(True)
 
-            for x in Items_relation.objects.filter(sales_id=invoice_obj.id):
-                invoice_obj.items.add(x)
-            print("invoice maped with items")
 
-            if float(paid_amount) > 0.0 :
-                'if any advance amount paid, it will be recorded in payement history'
-                print("Advance paid")
-                description = 'advance'
-                ph_obj = PayemetHistory()
-                ph_obj.invoice_id = invoice_obj.id
-                ph_obj.date_of_payement = invoice_obj.created
-                ph_obj.amount = paid_amount
-                ph_obj.description = description
-                ph_obj.save()
-                invoice_obj.payement_history.add(ph_obj)
+
+
+
 
             return Response(
                 {

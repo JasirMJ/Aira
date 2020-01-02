@@ -83,6 +83,8 @@ class Items_relation(models.Model):
     invoice_id = models.CharField(max_length=20,null=True)
     sales_id = models.CharField(max_length=20,null=True)
     product_Id = models.ForeignKey(Products,on_delete=models.SET_NULL,blank=True,null=True,related_name='item_products')
+    product_name = models.CharField(max_length=255,null=True)
+    qty = models.FloatField(null=True)
     item_price = models.CharField(max_length=20,null=True)
     tax = models.CharField(max_length=10,null=True)
 

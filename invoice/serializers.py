@@ -58,6 +58,7 @@ class InvoiceSerializers(serializers.ModelSerializer):
     history = HistorySerializer(many = True)
 
 
+
     # customer = CustomerSerializers(many=True)
 
     class Meta:
@@ -95,17 +96,18 @@ class InvoiceSerializers(serializers.ModelSerializer):
     #         print("0 customers ")
     #         return 0
     #
-    # def get_items_details(self, obj):
-    #     # print("obj ",obj)
-    #     details = ItemsInvoice.objects.filter(invoiceId=obj.id)
-    #     # print(payement_details)
-    #     if details.exists() :
-    #         details = ItemsInvoice.objects.filter(invoiceId=obj.id).order_by('id')
-    #         response = ItemsInvoiceSerializers(details,many=True)
-    #         return response.data
-    #     else :
-    #         print("0 items")
-    #         return 0
+    def get_items_details(self, obj):
+        print("obj ",obj)
+        # return obj.id
+        details = Items_relation.objects.filter(invoice_id=obj.id)
+        # print(payement_details)
+        if details.exists() :
+            details = Items_relation.objects.filter(invoice_id=obj.id).order_by('id')
+            response = Items_relationSerializers(details,many=True)
+            return response.data
+        else :
+            print("0 items")
+            return 0
     #
     # def get_payement_details(self, obj):
     #     # print("obj ",obj)

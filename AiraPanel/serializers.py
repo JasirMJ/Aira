@@ -68,3 +68,8 @@ class Items_relationSerializers(serializers.ModelSerializer):
         # fields = ['username', 'email']
         fields = '__all__'
 
+class RegisterViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiraAuthentication
+        fields = '__all__'
+        # fields = ['name']

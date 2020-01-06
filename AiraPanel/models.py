@@ -1,11 +1,39 @@
+from django.contrib.auth.models import User
 from django.db import models
 
 # Create your models here.
 from django_bulk_update.manager import BulkUpdateManager
 
+class Counter(models.Model):
+    name = models.CharField(max_length=120,unique=True)
+
+class Branch(models.Model):
+    name = models.CharField(max_length=120,unique=True)
 
 class Companies(models.Model):
-    name = models.CharField(max_length=120,unique=True)
+    name = models.CharField(max_length=120,unique=True,null=False)
+    branch_id = models.ManyToManyField(Branch)
+
+class AiraAuthentication(models.Model):
+    user_id = models.ForeignKey(User,on_delete=models.PROTECT,null=True)
+    company_id = models.ManyToManyField(Companies)
+    branch_id = models.ManyToManyField(Branch)
+    counter_id = models.ManyToManyField(Counter)
+    type = models.CharField(max_length=20)
+    # is_active = models.BooleanField(
+    #     default=True,
+    #     help_text=(
+    #         'Designates whether this user should be treated as active. '
+    #         'Unselect this instead of deleting accounts.'
+    #     ),
+    # )
+
+class asd(models.Model):
+    name = models.CharField(max_length=120,unique=True,null=False)
+
+
+
+
 
 class Customers(models.Model):
     name = models.CharField(max_length=120,unique=True)
@@ -31,7 +59,7 @@ class Units(models.Model):
     # measurement = models.CharField(max_length=120)
 
 class Products(models.Model):
-    pdt = models.CharField(max_length=100,unique=True)
+    # pdt = models.CharField(max_length=100,unique=True)
     name = models.CharField(max_length=120,unique=True)
     hsn_code = models.CharField(max_length=120,null=True)
     hsn_group = models.CharField(max_length=120,null=True)

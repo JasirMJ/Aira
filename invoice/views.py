@@ -490,7 +490,8 @@ class InvoiceView(ListAPIView):
 
                 for item in items:
                     item_obj = Products.objects.filter(id=item['id']).first()
-
+                    print(INFO,item_obj)
+                    print(INFO,item_obj.name)
                     available_stock = item_obj.stock
                     required_stock = item['qty']
 
@@ -636,12 +637,13 @@ class InvoiceView(ListAPIView):
         except Exception as e:
             print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
             if invoice_obj:
+                number = invoice_obj.id
                 invoice_obj.delete()
-                print("invoice_obj deleted")
+                print("Invoice ",number," deleted")
 
-            if history_obj:
-                history_obj.delete()
-                print("history_obj deleted")
+            # if history_obj:
+            #     history_obj.delete()
+            #     print("history_obj deleted")
 
             return Response(
                 {

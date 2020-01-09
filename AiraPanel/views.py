@@ -1,15 +1,23 @@
+import json
+
+from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import render
 
 # Create your views here.
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import *
 from .global_variables import *
 from rest_framework.views import APIView
 from .serializers import *
+
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import login as django_login, logout as django_logout
 
 
 def index(request):
@@ -610,17 +618,380 @@ class SampleData(ListAPIView):
             }
         )
 
+class LoginView(ListAPIView):
+    def post(self,request):
+        print(request.data)
+        serializer = LoginSerializer(data=request.data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
+
+            print(django_login(request, user))
+            token, created = Token.objects.get_or_create(user=user)
+            print("token  ",token)
+            print("created ",created)
+            return Response(
+                {
+                    STATUS: True,
+                    'Token': 'Token '+token.key
+                },
+                status=200
+            )
+        except Exception as e:
+            print("Excepction occured ################### : ", e)
+            return Response(
+                {
+                    'status': False,
+                    'Message': 'Invalid user',
+                }
+            )
+
+
 class RegisterView(ListAPIView):
     serializer_class = RegisterViewSerializer
 
+    # permission_classes = (IsAdminUser,)
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
     def get_queryset(self):
-        qs = AiraAuthentication.objects.all()
+        if self.request.user.is_staff == True:
+            qs = AiraAuthentication.objects.all().prefetch_related('user_id').order_by('-id')
+        else:
+            qs = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).prefetch_related('user_id').order_by('-id')
         return qs
 
     def post(self,request):
+        # print(self.request.user.is_staff)
+        fname = self.request.POST.get('fname', '')
+        lname = self.request.POST.get('lname', '')
+        email = self.request.POST.get('email', '')
+        username = self.request.POST.get('username', '')
+
+        password = 123123
+
+        if username == "" or not username:
+            return Response({
+                STATUS: False,
+                MESSAGE: "required username"
+            })
+
+        if email == "" or not email:
+            return Response({
+                STATUS: False,
+                MESSAGE: "required email"
+            })
+
+        user_obj = User()
+        user_obj.username = username
+        user_obj.first_name = fname
+        user_obj.last_name = lname
+        user_obj.email = email
+        user_obj.password = make_password(password)
+
+        try:
+
+            if self.request.user.is_staff == True:
+                # return Response(True)
+                ''' if the user is super admin , he can create new company and a new user'''
+                type = 'company'
+                company = self.request.POST.get('company','')
+                if company == '' or not company:
+                    return Response(
+                        {
+                            STATUS : False,
+                            MESSAGE : "required company"
+                        }
+                    )
+
+                c_obj = Companies(
+                    name=company,
+                )
+                c_obj.save()
+                print("Companies : Created :",c_obj)
+
+                user_obj.save()
+                print("User : Creted", user_obj)
+
+                auth_obj = AiraAuthentication()
+                auth_obj.user_id = user_obj
+                auth_obj.type = type
+                auth_obj.save()
+                print("AiraAuthentication : created :",auth_obj)
+                auth_obj.company_id.add(
+                    c_obj
+                )
+                print("AiraAuthentication : ",c_obj," added to ","AiraAuthentication.company_id")
+
+                return Response(
+                    {
+                        STATUS:True,
+                        MESSAGE:"Hi Admin! New "+type+" created :"+str(company),
+                        'created by':self.request.user.username
+                    }
+                )
+
+            elif self.request.user.is_staff == False:
+                ''' if the user is company , he can create new branch and a new counter'''
+                aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id)
+                if aira_obj.exists:
+                    if aira_obj.first().type:
+                        print(aira_obj.first().type)
+                        user_type = aira_obj.first().type
+                else:
+                    return Response(
+                        {
+                            STATUS:False,
+                            MESSAGE:"user not found",
+                            CODE:"dqwd12ccs"
+                        }
+
+                    )
+
+                type = self.request.POST.get('type', '')
+                # company = self.request.POST.get('company', '')
+                branch_name = self.request.POST.get('branch_name', 'branch01')
+                counter_name = self.request.POST.get('counter_name', 'counter01')
+
+                if type == "" or not type:
+                    return Response(
+                        {
+                            STATUS : False,
+                            MESSAGE : "required type as 'branch' or 'counter' got type as :"+type,
+                            CODE:"4532g51",
+                        }
+                    )
+                if branch_name == '' or not branch_name:
+                    return Response(
+                        {
+                            STATUS : False,
+                            MESSAGE : "required branch_name"
+                        }
+                    )
+
+                b_obj = Branch(
+                    name=branch_name
+                )
+
+                counter_obj = Counter(
+                    name=counter_name
+                )
+
+                if type == 'branch':
+                    '''Create Branch'''
+                    try:
+                        print("Create Branch")
+                        obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+                        print("Company id : ",obj.company_id.first().id)
+                        company_id = obj.company_id.first().id
+                        c_obj = Companies.objects.get(
+                            id=company_id,
+                        )
+                        print(c_obj)
+
+
+                        # return Response(type)
+
+                        counter_obj.save()
+                        print("Counter : created :", counter_obj)
+
+                        b_obj.save()
+                        print("Branch : created :", b_obj)
+
+                        c_obj = Companies.objects.get(
+                            id=company_id,
+                        )
+
+                        user_obj.save()
+                        print("User : Creted",user_obj)
+
+                        auth_obj = AiraAuthentication()
+                        auth_obj.user_id = user_obj
+                        auth_obj.type = type
+                        auth_obj.save()
+                        print("AiraAuthentication : created :", auth_obj)
+
+                        auth_obj.company_id.add(
+                            c_obj
+                        )
+                        c_obj.branch_id.add(
+                            b_obj
+                        )
+                        b_obj.counter_id.add(
+                            counter_obj
+                        )
+
+                        return Response(
+                            {
+                                STATUS: True,
+                                MESSAGE: "Hi " + self.request.user.username + "! New" + type + "created :" + str(
+                                    branch_name),
+                                'created by': self.request.user.username
+
+                            }
+                        )
+                    except Exception as e:
+                        if auth_obj:
+                            auth_obj.delete()
+                        if user_obj:
+                            user_obj.delete()
+
+                        return Response(
+                            {
+                                STATUS: False,
+                                MESSAGE: "Excepction occured :"+str(e),
+                                "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
+                                CODE: 'd2t5g1a'
+                            }
+                        )
+
+                elif type == "counter" :
+                    '''Create Counter and add it to a branch'''
+                    print("Create Counter")
+
+                    obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+                    print("Company id : ", obj.company_id.first().id)
+                    branch_obj = obj.company_id.first().branch_id.first()
+
+                    return Response({
+                        "branch":branch_obj.id,
+                        "branch name":branch_obj.name,
+                    })
+
+                    if obj.type != "branch":
+                        print("not branch")
+                        return Response(
+                            {
+                                STATUS:False,
+                                MESSAGE:"only branch can create many counter, please login in as a branch",
+                                CODE:"98huh5"
+                            }
+                        )
+
+                    # return Response(
+                    #     {
+                    #         STATUS:True,
+                    #         MESSAGE:obj.company_id.first().id,
+                    #         "type":obj.type,
+                    #         "branch id":obj.company_id.first().branch_id.first().id,
+                    #
+                    #     }
+                    # )
+
+                    try:
+                        print("Branch id : ", branch_obj)
+
+                        counter_obj.save()
+                        print("Counter : created :", counter_obj)
+
+                        user_obj.save()
+                        print("User : Creted", user_obj)
+
+                        auth_obj = AiraAuthentication()
+                        auth_obj.user_id = user_obj
+                        auth_obj.type = type
+                        auth_obj.save()
+                        print("AiraAuthentication : created :", auth_obj)
+
+                        branch_obj.counter_id.add(
+                            counter_obj
+                        )
+
+                        return Response(
+                            {
+                                STATUS: True,
+                                MESSAGE: "Hi " + self.request.user.username + "! New" + type + "created :"+str(counter_name),
+                                'created by': self.request.user.username
+                            }
+                        )
+                    except Exception as e:
+                        print("Excepction :",str(e))
+                        if auth_obj:
+                            auth_obj.delete()
+                            print("AiraAuthentication : Deleted")
+                        if user_obj:
+                            user_obj.delete()
+                            print("User : Deleted")
+
+                        if b_obj:
+                            b_obj.delete()
+                            print("Branch : Deleted")
+
+
+                        return Response(
+                            {
+                                STATUS: False,
+                                MESSAGE: "Excepction occured :" + str(e),
+                                "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
+                                CODE: 'd2t5g1a'
+                            }
+                        )
+
+        except Exception as e:
+            print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
+            #
+            # if c_obj:
+            #     try:
+            #         c_obj.delete()
+            #         print("company ", c_obj, " deleted")
+            #     except Exception as e:
+            #         print(str(e))
+            #
+            # if user_obj:
+            #     try:
+            #         user_obj.delete()
+            #         print("user ", user_obj, " deleted")
+            #     except Exception as e:
+            #         print(str(e))
+
+            return Response(
+                {
+                    STATUS:False,
+                    "Exception":str(e),
+                    MESSAGE:str(format(sys.exc_info()[-1].tb_lineno)),
+                }
+            )
+
+    def delete(self,request):
+        user_id = self.request.POST.get('user_id','')
+        if user_id == "" :
+            print("User : All user delete")
+            msg = "User : All users delete"
+            print(AiraAuthentication.objects.all().delete())
+        else:
+            print(" User : ",user_id," delete")
+            msg = " User : "+str(user_id)+" deleted"
+            print(AiraAuthentication.objects.get(user_id_id=user_id).delete())
+
         return Response(
             {
                 STATUS:True,
-                MESSAGE:"Sucess",
+                MESSAGE:msg,
             }
         )
+
+
+class AiraUser(ListAPIView):
+    serializer_class = UserSerializers
+    def get_queryset(self):
+        qs = User.objects.all()
+        return qs
+
+    def delete(self,request):
+        id = self.request.POST.get('id','')
+        if id == '':
+            print(User.objects.all().exclude(is_staff=True).delete())
+            msg = "User : All users deleted except admin"
+
+        else:
+            print(User.objects.filter(id=id).exclude(is_staff=True).delete())
+            msg = "User : users "+str(id)+" deleted except admin "
+
+        return Response(
+            {
+                STATUS:True,
+                MESSAGE:msg
+            }
+        )
+

@@ -11,4 +11,6 @@ urlpatterns = [
     path('customer/', views.CustomerView.as_view(), name="customer"),
     path('sample-data/', views.SampleData.as_view(), name="sample-data"),
     path('register/', views.RegisterView.as_view(), name="register"),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('aira-users/', views.AiraUser.as_view(), name='login'),
 ]

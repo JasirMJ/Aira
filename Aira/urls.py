@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import path, include
-
+from rest_framework.authtoken.views import obtain_auth_token
 from Aira import views
 
 urlpatterns = [
@@ -27,4 +27,5 @@ urlpatterns = [
     path('aira/',include('AiraPanel.urls')),
     path('invoice/',include('invoice.urls')),
     path('purchase/',include('purchase.urls')),
+    # path('login/',include('purchase.urls')),
 ]

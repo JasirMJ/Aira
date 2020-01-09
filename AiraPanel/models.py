@@ -5,17 +5,19 @@ from django.db import models
 from django_bulk_update.manager import BulkUpdateManager
 
 class Counter(models.Model):
-    name = models.CharField(max_length=120,unique=True)
+    name = models.CharField(max_length=120,null=False)
 
 class Branch(models.Model):
-    name = models.CharField(max_length=120,unique=True)
+    name = models.CharField(max_length=120,null=False)
+    counter_id = models.ManyToManyField(Counter)
 
 class Companies(models.Model):
-    name = models.CharField(max_length=120,unique=True,null=False)
+    name = models.CharField(max_length=120,null=False)
+    place = models.CharField(max_length=120,null=False)
     branch_id = models.ManyToManyField(Branch)
 
 class AiraAuthentication(models.Model):
-    user_id = models.ForeignKey(User,on_delete=models.PROTECT,null=True)
+    user_id = models.ForeignKey(User,on_delete=models.PROTECT,null=True,related_name='user_details')
     company_id = models.ManyToManyField(Companies)
     branch_id = models.ManyToManyField(Branch)
     counter_id = models.ManyToManyField(Counter)

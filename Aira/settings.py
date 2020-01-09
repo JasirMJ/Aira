@@ -44,6 +44,9 @@ INSTALLED_APPS = [
 
     'django_mysql',
     'rest_framework',
+    'rest_framework.authtoken',
+
+
     'AiraPanel',
     'product',
     'billing',

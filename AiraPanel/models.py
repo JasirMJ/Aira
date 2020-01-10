@@ -18,9 +18,10 @@ class Companies(models.Model):
 
 class AiraAuthentication(models.Model):
     user_id = models.ForeignKey(User,on_delete=models.PROTECT,null=True,related_name='user_details')
-    company_id = models.ManyToManyField(Companies)
-    branch_id = models.ManyToManyField(Branch)
-    counter_id = models.ManyToManyField(Counter)
+    company = models.ManyToManyField(Companies)
+    company_id = models.ForeignKey(Companies,on_delete=models.PROTECT,null=True,related_name="companyid")
+    branch_id = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True)
+    counter_id = models.ForeignKey(Counter,on_delete=models.PROTECT,null=True)
     type = models.CharField(max_length=20)
     # is_active = models.BooleanField(
     #     default=True,

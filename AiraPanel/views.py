@@ -357,28 +357,40 @@ class CompanyView(ListAPIView):
 
     def delete(self, request):
         id = self.request.POST.get('id', '')
+        id = id.split(',')
         delete = self.request.POST.get('delete', '')
-        if delete == "delete":
-            Companies.objects.all().delete()
+        try:
+            if delete == "delete":
+                Companies.objects.all().delete()
+                return Response(
+                    {
+                        STATUS: True,
+                        MESSAGE: "deleted all",
+                    }
+                )
+            elif not id == '[]':
+                deleted = Companies.objects.filter(id__in=id).delete()
+
+                return Response(
+                    {
+                        STATUS: True,
+                        "deleted": deleted,
+                    }
+                )
+            else:
+                return Response(
+                    {
+                        STATUS: True,
+                        MESSAGE: "deleted nothing",
+                    }
+                )
+        except Exception as e:
             return Response(
                 {
-                    STATUS: True,
-                    MESSAGE: "deleted all",
-                }
-            )
-        elif not id == '':
-            print(Companies.objects.filter(id=id).delete())
-            return Response(
-                {
-                    STATUS: True,
-                    MESSAGE: "deleted 1 item",
-                }
-            )
-        else:
-            return Response(
-                {
-                    STATUS: True,
-                    MESSAGE: "deleted nothing",
+                    STATUS: False,
+                    MESSAGE: "Excepction occured :" + str(e),
+                    "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
+                    CODE: 'd2t5a1g1a'
                 }
             )
 
@@ -663,11 +675,26 @@ class RegisterView(ListAPIView):
         return qs
 
     def post(self,request):
+
+        # return Response(True)
+
         # print(self.request.user.is_staff)
+
         fname = self.request.POST.get('fname', '')
         lname = self.request.POST.get('lname', '')
         email = self.request.POST.get('email', '')
         username = self.request.POST.get('username', '')
+
+        check_username = User.objects.filter(username=username)
+        if check_username.exists():
+            print("user obj ",check_username)
+            return Response(
+                {
+                    STATUS:False,
+                    MESSAGE:"username "+str(username)+" already exists try another name"
+                }
+            )
+        # return Response(False)
 
         password = 123123
 
@@ -717,13 +744,13 @@ class RegisterView(ListAPIView):
                 auth_obj = AiraAuthentication()
                 auth_obj.user_id = user_obj
                 auth_obj.type = type
+                auth_obj.company_id = c_obj
+
+
                 auth_obj.save()
                 print("AiraAuthentication : created :",auth_obj)
-                auth_obj.company_id.add(
-                    c_obj
-                )
-                print("AiraAuthentication : ",c_obj," added to ","AiraAuthentication.company_id")
-
+                auth_obj.company.add(c_obj)
+                print("AiraAuthentication : ", c_obj, " added to ", "AiraAuthentication.company_id")
                 return Response(
                     {
                         STATUS:True,
@@ -779,19 +806,28 @@ class RegisterView(ListAPIView):
                 )
 
                 if type == 'branch':
-                    '''Create Branch'''
+                    '''Create Branch and add it to the current company'''
+
                     try:
-                        print("Create Branch")
+                        print("Create Branch and add it to the current company")
+
                         obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
-                        print("Company id : ",obj.company_id.first().id)
-                        company_id = obj.company_id.first().id
-                        c_obj = Companies.objects.get(
-                            id=company_id,
-                        )
-                        print(c_obj)
+                        comp_obj = obj.company_id
+                        print("Company obj : ",comp_obj)
+                        print("Company id : ",comp_obj.id)
 
+                        # company_id = obj.company_id.first().id
+                        # c_obj = Companies.objects.get(
+                        #     id=company_id,
+                        # )
+                        # print(c_obj)
 
-                        # return Response(type)
+                        # return Response(
+                        #     {
+                        #         "company id": obj.company_id.id,
+                        #     }
+                        #
+                        # )
 
                         counter_obj.save()
                         print("Counter : created :", counter_obj)
@@ -799,23 +835,22 @@ class RegisterView(ListAPIView):
                         b_obj.save()
                         print("Branch : created :", b_obj)
 
-                        c_obj = Companies.objects.get(
-                            id=company_id,
-                        )
-
                         user_obj.save()
                         print("User : Creted",user_obj)
 
                         auth_obj = AiraAuthentication()
                         auth_obj.user_id = user_obj
                         auth_obj.type = type
+                        auth_obj.company_id = comp_obj
+                        auth_obj.branch_id = b_obj
+
                         auth_obj.save()
                         print("AiraAuthentication : created :", auth_obj)
 
-                        auth_obj.company_id.add(
-                            c_obj
+                        auth_obj.company.add(
+                            comp_obj
                         )
-                        c_obj.branch_id.add(
+                        comp_obj.branch_id.add(
                             b_obj
                         )
                         b_obj.counter_id.add(
@@ -851,13 +886,16 @@ class RegisterView(ListAPIView):
                     print("Create Counter")
 
                     obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
-                    print("Company id : ", obj.company_id.first().id)
-                    branch_obj = obj.company_id.first().branch_id.first()
+                    comp_obj = obj.company_id
+                    print("Company id : ", comp_obj.id)
 
-                    return Response({
-                        "branch":branch_obj.id,
-                        "branch name":branch_obj.name,
-                    })
+                    branch_obj = obj.branch_id
+                    print("Branch id : ", branch_obj.id)
+
+                    # return Response({
+                    #     "branch":branch_obj.id,
+                    #     "branch name":branch_obj.name,
+                    # })
 
                     if obj.type != "branch":
                         print("not branch")
@@ -880,7 +918,6 @@ class RegisterView(ListAPIView):
                     # )
 
                     try:
-                        print("Branch id : ", branch_obj)
 
                         counter_obj.save()
                         print("Counter : created :", counter_obj)
@@ -891,6 +928,9 @@ class RegisterView(ListAPIView):
                         auth_obj = AiraAuthentication()
                         auth_obj.user_id = user_obj
                         auth_obj.type = type
+                        auth_obj.company_id = comp_obj
+                        auth_obj.branch_id = branch_obj
+                        auth_obj.counter_id = counter_obj
                         auth_obj.save()
                         print("AiraAuthentication : created :", auth_obj)
 
@@ -905,24 +945,38 @@ class RegisterView(ListAPIView):
                                 'created by': self.request.user.username
                             }
                         )
-                    except Exception as e:
-                        print("Excepction :",str(e))
-                        if auth_obj:
-                            auth_obj.delete()
-                            print("AiraAuthentication : Deleted")
+                    except Exception as e1:
+                        print("Excepction :",str(e1))
+
+                        try:
+                            if auth_obj:
+
+                                auth_obj.delete()
+                                print("AiraAuthentication : Deleted")
+                        except Exception as e:
+                            print("cant delete AiraAuthentication coz :"+str(e))
+
+
                         if user_obj:
-                            user_obj.delete()
-                            print("User : Deleted")
+                            try:
+                                user_obj.delete()
+                                print("User : Deleted")
+                            except Exception as e:
+                                print("cant delete User coz :" + str(e))
 
                         if b_obj:
-                            b_obj.delete()
-                            print("Branch : Deleted")
+                            try:
+                                b_obj.delete()
+                                print("Branch : Deleted")
+                            except Exception as e:
+                                print("cant delete Branch coz :" + str(e))
+
 
 
                         return Response(
                             {
                                 STATUS: False,
-                                MESSAGE: "Excepction occured :" + str(e),
+                                MESSAGE: "Excepction occured :" + str(e1),
                                 "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
                                 CODE: 'd2t5g1a'
                             }
@@ -930,20 +984,20 @@ class RegisterView(ListAPIView):
 
         except Exception as e:
             print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
-            #
-            # if c_obj:
-            #     try:
-            #         c_obj.delete()
-            #         print("company ", c_obj, " deleted")
-            #     except Exception as e:
-            #         print(str(e))
-            #
-            # if user_obj:
-            #     try:
-            #         user_obj.delete()
-            #         print("user ", user_obj, " deleted")
-            #     except Exception as e:
-            #         print(str(e))
+
+            if c_obj:
+                try:
+                    c_obj.delete()
+                    print("company ", c_obj, " deleted")
+                except Exception as e2:
+                    print(str(e2))
+
+            if user_obj:
+                try:
+                    user_obj.delete()
+                    print("user ", user_obj, " deleted")
+                except Exception as e3:
+                    print(str(e3))
 
             return Response(
                 {

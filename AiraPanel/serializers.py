@@ -134,7 +134,8 @@ class Items_relationSerializers(serializers.ModelSerializer):
 class RegisterViewSerializer(serializers.ModelSerializer):
     # userid = serializers.CharField(source='user_id')
     user_id = UserSerializers(read_only=True)
-    company_id = CompanySerializers(many=True)
+    company = CompanySerializers(many=True)
+    # company_id = CompanySerializers
     # CompanySerializers =
     # user_id = serializers.SerializerMethodField()
     class Meta:

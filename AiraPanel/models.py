@@ -173,6 +173,11 @@ class Invoices(models.Model):
     history = models.ManyToManyField(History)
     type = models.CharField(max_length=20,null=False)
 
+    counterid = models.ForeignKey(Counter, on_delete=models.PROTECT,null=True)
+    branchid = models.ForeignKey(Branch, on_delete=models.PROTECT,null=True)
+    companyid = models.ForeignKey(Companies, on_delete=models.PROTECT,null=True)
+
+
 class ItemsBilling(models.Model):
     billingid = models.CharField(max_length=20)
     product_Id = models.CharField(max_length=20)

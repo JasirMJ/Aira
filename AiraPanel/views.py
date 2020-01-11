@@ -732,25 +732,28 @@ class RegisterView(ListAPIView):
                         }
                     )
 
-                c_obj = Companies(
-                    name=company,
-                )
-                c_obj.save()
-                print("Companies : Created :",c_obj)
+                with transaction.atomic():
 
-                user_obj.save()
-                print("User : Creted", user_obj)
+                    c_obj = Companies(
+                        name=company,
+                    )
 
-                auth_obj = AiraAuthentication()
-                auth_obj.user_id = user_obj
-                auth_obj.type = type
-                auth_obj.company_id = c_obj
+                    c_obj.save()
+                    print("Companies : Created :",c_obj)
 
+                    user_obj.save()
+                    print("User : Creted", user_obj)
 
-                auth_obj.save()
-                print("AiraAuthentication : created :",auth_obj)
-                auth_obj.company.add(c_obj)
-                print("AiraAuthentication : ", c_obj, " added to ", "AiraAuthentication.company_id")
+                    auth_obj = AiraAuthentication()
+                    auth_obj.user_id = user_obj
+                    auth_obj.type = type
+                    auth_obj.company_id = c_obj
+
+                    auth_obj.save()
+                    print("AiraAuthentication : created :",auth_obj)
+                    auth_obj.company.add(c_obj)
+                    print("AiraAuthentication : ", c_obj, " added to ", "AiraAuthentication.company_id")
+
                 return Response(
                     {
                         STATUS:True,
@@ -761,6 +764,7 @@ class RegisterView(ListAPIView):
 
             elif self.request.user.is_staff == False:
                 ''' if the user is company , he can create new branch and a new counter'''
+
                 aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id)
                 if aira_obj.exists:
                     if aira_obj.first().type:
@@ -810,8 +814,8 @@ class RegisterView(ListAPIView):
 
                     try:
                         print("Create Branch and add it to the current company")
-
-                        obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+                        obj = aira_obj.first()
+                        # obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
                         comp_obj = obj.company_id
                         print("Company obj : ",comp_obj)
                         print("Company id : ",comp_obj.id)
@@ -828,34 +832,34 @@ class RegisterView(ListAPIView):
                         #     }
                         #
                         # )
+                        with transaction.atomic():
+                            counter_obj.save()
+                            print("Counter : created :", counter_obj)
 
-                        counter_obj.save()
-                        print("Counter : created :", counter_obj)
+                            b_obj.save()
+                            print("Branch : created :", b_obj)
 
-                        b_obj.save()
-                        print("Branch : created :", b_obj)
+                            user_obj.save()
+                            print("User : Creted",user_obj)
 
-                        user_obj.save()
-                        print("User : Creted",user_obj)
+                            auth_obj = AiraAuthentication()
+                            auth_obj.user_id = user_obj
+                            auth_obj.type = type
+                            auth_obj.company_id = comp_obj
+                            auth_obj.branch_id = b_obj
 
-                        auth_obj = AiraAuthentication()
-                        auth_obj.user_id = user_obj
-                        auth_obj.type = type
-                        auth_obj.company_id = comp_obj
-                        auth_obj.branch_id = b_obj
+                            auth_obj.save()
+                            print("AiraAuthentication : created :", auth_obj)
 
-                        auth_obj.save()
-                        print("AiraAuthentication : created :", auth_obj)
-
-                        auth_obj.company.add(
-                            comp_obj
-                        )
-                        comp_obj.branch_id.add(
-                            b_obj
-                        )
-                        b_obj.counter_id.add(
-                            counter_obj
-                        )
+                            auth_obj.company.add(
+                                comp_obj
+                            )
+                            comp_obj.branch_id.add(
+                                b_obj
+                            )
+                            b_obj.counter_id.add(
+                                counter_obj
+                            )
 
                         return Response(
                             {
@@ -866,16 +870,28 @@ class RegisterView(ListAPIView):
 
                             }
                         )
-                    except Exception as e:
+                    except Exception as e1:
+
+                        if counter_obj:
+                            try:
+                                counter_obj.delete()
+                            except Exception as e:
+                                print("Cant delete Counter coz :",str(e))
                         if auth_obj:
-                            auth_obj.delete()
+                            try:
+                                auth_obj.delete()
+                            except Exception as e:
+                                print("Cant delete AiraAuthentication coz :",str(e))
                         if user_obj:
-                            user_obj.delete()
+                            try:
+                                user_obj.delete()
+                            except Exception as e:
+                                print("Cant delete User coz :",str(e))
 
                         return Response(
                             {
                                 STATUS: False,
-                                MESSAGE: "Excepction occured :"+str(e),
+                                MESSAGE: "Excepction occured :"+str(e1),
                                 "Line no": str(format(sys.exc_info()[-1].tb_lineno)),
                                 CODE: 'd2t5g1a'
                             }
@@ -884,8 +900,8 @@ class RegisterView(ListAPIView):
                 elif type == "counter" :
                     '''Create Counter and add it to a branch'''
                     print("Create Counter")
-
-                    obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+                    obj = aira_obj.first()
+                    # obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
                     comp_obj = obj.company_id
                     print("Company id : ", comp_obj.id)
 
@@ -948,13 +964,15 @@ class RegisterView(ListAPIView):
                     except Exception as e1:
                         print("Excepction :",str(e1))
 
-                        try:
-                            if auth_obj:
 
-                                auth_obj.delete()
-                                print("AiraAuthentication : Deleted")
+
+                        try:
+                            if counter_obj:
+
+                                counter_obj.delete()
+                                print("Counter : Deleted")
                         except Exception as e:
-                            print("cant delete AiraAuthentication coz :"+str(e))
+                            print("cant delete Counter coz :"+str(e))
 
 
                         if user_obj:
@@ -964,12 +982,12 @@ class RegisterView(ListAPIView):
                             except Exception as e:
                                 print("cant delete User coz :" + str(e))
 
-                        if b_obj:
+                        if auth_obj:
                             try:
-                                b_obj.delete()
-                                print("Branch : Deleted")
+                                auth_obj.delete()
+                                print("AiraAuthentication : Deleted")
                             except Exception as e:
-                                print("cant delete Branch coz :" + str(e))
+                                print("cant delete AiraAuthentication coz :" + str(e))
 
 
 

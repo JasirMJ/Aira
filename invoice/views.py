@@ -13,7 +13,9 @@ import requests
 
 
 # Create your views here.
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from AiraPanel.models import *
@@ -388,11 +390,30 @@ class SalesView(ListAPIView):
 
 class InvoiceView(ListAPIView):
     serializer_class = InvoiceSerializers
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
 
     def get_queryset(self):
         print("--------------  InvoiceView : GET  --------------")
-        queryset = Invoices.objects.all().order_by('-id')
-        return queryset
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id)
+        if aira_obj.exists():
+            aira_obj = aira_obj.first()
+            print("type : ",aira_obj.type)
+            print("counterid : ",aira_obj.counter_id_id)
+            if aira_obj.type == "counter":
+                print(Invoices.objects.filter(counterid_id = aira_obj.counter_id_id))
+                queryset = Invoices.objects.filter(counterid_id = aira_obj.counter_id_id).order_by('-id')
+                return queryset
+
+            elif aira_obj.type == "branch":
+                print(Invoices.objects.filter(branchid_id=aira_obj.branch_id_id))
+                queryset = Invoices.objects.filter(branchid_id=aira_obj.branch_id_id).order_by('-id')
+                return queryset
+        else:
+            print('No such user')
+            queryset = Invoices.objects.filter(id=-1).order_by('-id')
+            return queryset
 
     def post(self, request):
         print("--------------  InvoiceView : POST  --------------")
@@ -467,6 +488,63 @@ class InvoiceView(ListAPIView):
 
 
         try:
+            # Invoices.objects.all().delete()
+            # return Response(True)
+            aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+
+            user_type = aira_obj.type
+
+            print("User : type : ",user_type)
+
+            username = self.request.user.username
+
+            print(username)
+
+
+
+            if user_type == "counter":
+                print("Counter obj :", aira_obj.counter_id)
+                counter_obj = aira_obj.counter_id
+                invoice_obj.counterid = counter_obj
+
+                branch_obj = aira_obj.branch_id
+                print("Branch obj :", branch_obj)
+                invoice_obj.branchid = branch_obj
+
+                company_obj = aira_obj.company_id
+                invoice_obj.companyid = company_obj
+                print("Company object : ", company_obj)
+
+                # return Response("Counter")
+
+
+            elif user_type =="branch":
+
+                counter_obj = aira_obj.branch_id.counter_id.first()
+                # counter_obj = aira_obj.company.first().branch_id.first().counter_id.first()
+                print("Counter object : ",counter_obj)
+
+                invoice_obj.counterid = counter_obj
+
+                branch_obj = aira_obj.branch_id
+                invoice_obj.branchid = branch_obj
+                print("Branch object : ", branch_obj)
+
+                company_obj = aira_obj.company_id
+                invoice_obj.companyid = company_obj
+                print("Company object : ", company_obj)
+
+                # return Response(True)
+            elif user_type == "company":
+                '''if company then select a branch and a counter to create invoice'''
+                return Response("Logged as Company")
+            else:
+                return Response("user must be a company or branch or counter")
+
+            # return Response(True)
+
+            print("Counter id :", counter_obj.id)
+
             with transaction.atomic():
                 # This code executes inside a transaction.
                 invoice_obj.save()
@@ -637,9 +715,12 @@ class InvoiceView(ListAPIView):
         except Exception as e:
             print("Excepction :" + str(e) + " Line no :" + str(format(sys.exc_info()[-1].tb_lineno)))
             if invoice_obj:
-                number = invoice_obj.id
-                invoice_obj.delete()
-                print("Invoice ",number," deleted")
+                try:
+                    number = invoice_obj.id
+                    invoice_obj.delete()
+                    print("Invoice ",number," deleted")
+                except Exception as e1:
+                    print("cant delete Invoice coz :",str(e1))
 
             # if history_obj:
             #     history_obj.delete()

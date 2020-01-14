@@ -142,3 +142,9 @@ class RegisterViewSerializer(serializers.ModelSerializer):
         model = AiraAuthentication
         fields = '__all__'
         # fields = ['name','userid']
+
+
+class TaxViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tax
+        fields = "__all__"

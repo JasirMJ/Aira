@@ -18,8 +18,16 @@ from django.http import HttpResponse
 from django.urls import path, include
 from rest_framework.authtoken.views import obtain_auth_token
 from Aira import views
+from AiraPanel import views as airaPanelView
+
+from rest_framework import routers
+
+# router = routers.DefaultRouter()
+# router.register(r'category', airaPanelView.CategoryView)
+# router.register(r'unit', airaPanelView.UnitView)
 
 urlpatterns = [
+    # path('airaAdmin', include(router.urls)),
     path('', views.index),
     path('admin/', admin.site.urls),
     path('billing/', include('billing.urls')),

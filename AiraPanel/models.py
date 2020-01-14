@@ -15,6 +15,7 @@ class Companies(models.Model):
     name = models.CharField(max_length=120,null=False)
     place = models.CharField(max_length=120,null=False)
     branch_id = models.ManyToManyField(Branch)
+    company_of = models.CharField(max_length=255,null=True)
 
 class AiraAuthentication(models.Model):
     user_id = models.ForeignKey(User,on_delete=models.PROTECT,null=True,related_name='user_details')
@@ -51,6 +52,9 @@ class Customers(models.Model):
     job_position = models.CharField(max_length=100,null=True)
     email = models.EmailField(null=True)
 
+    company = models.ForeignKey(Companies,on_delete=models.CASCADE,null=True)
+    branch = models.ForeignKey(Branch,on_delete=models.CASCADE,null=True)
+
 class Categories(models.Model):
     name = models.CharField(max_length=120,unique=True)
 
@@ -73,7 +77,7 @@ class Products(models.Model):
     wholesale = models.CharField(max_length=12, null=True)
     sp = models.CharField(max_length=12, null=True)
     retail = models.CharField(max_length=12, null=True)
-    branch = models.CharField(max_length=12, null=True)
+    # branch = models.CharField(max_length=12, null=True)
     loading_charge = models.CharField(max_length=12, null=True)
     is_active = models.IntegerField()
 
@@ -101,6 +105,9 @@ class Products(models.Model):
     stock = models.FloatField(default=0.0)
 
     objects = BulkUpdateManager()
+
+    branch = models.ForeignKey(Branch,on_delete=models.CASCADE,null=True,related_name="product_branch")
+    company = models.ForeignKey(Companies,on_delete=models.CASCADE,null=True,related_name="product_company")
 
 # class ItemsInvoice(models.Model):
 #     invoiceId = models.CharField(max_length=20)
@@ -243,6 +250,10 @@ class Inventory(models.Model):
     unit_price = models.FloatField()
     barcodeid = models.CharField(max_length=50,null=True)
 
+    branch = models.ForeignKey(Branch,on_delete=models.CASCADE,null=True)
 
-
-
+class Tax(models.Model):
+    name = models.CharField(max_length=120)
+    tax_percentage = models.CharField(max_length=20)
+    description = models.CharField(max_length=255,null=True)
+    branch = models.ForeignKey(Branch,on_delete=models.CASCADE)

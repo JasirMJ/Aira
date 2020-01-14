@@ -25,3 +25,11 @@ def isnull(variable):
         return True
     else:
         return False
+
+def whoami(request):
+    username = request.user.username
+    userid = request.user.id
+
+    print("username :", username)
+    print("id :", userid)
+    return 0

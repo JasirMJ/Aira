@@ -2,6 +2,8 @@ import sys
 
 from django.db import transaction
 from django.shortcuts import render
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.utils import json
 from AiraPanel.models import *
@@ -95,6 +97,9 @@ class ContractView(ListAPIView):
 
 class PurchaseOrderView(ListAPIView):
     serializer_class = PurchaseOrderSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
     def get_queryset(self):
         '''
         :return:
@@ -103,6 +108,19 @@ class PurchaseOrderView(ListAPIView):
         return queryset
 
     def post(self,request):
+        username = self.request.user.username
+        userid = self.request.user.id
+
+
+
+        whoami(request)
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print("aira :", aira_obj)
+
+        comp_obj = aira_obj.company_id
+        print("company :", comp_obj)
+
 
         '''
         :param request:
@@ -133,7 +151,38 @@ class PurchaseOrderView(ListAPIView):
             items = json.loads(items)
             vendors = json.loads(vendors)
 
+            if aira_obj.type == "company":
+                branch_id = self.request.POST.get("branch_id", "")
+                if branch_id == "" or not branch_id:
+                    return Response(
+                        {
+                            STATUS: False,
+                            MESSAGE: "Required branch_id"
+                        }
+                    )
 
+                branch_obj = comp_obj.branch_id.filter(id=branch_id)
+                print("branch obj ", branch_obj)
+                if branch_obj.exists():
+                    # obj = Branch.objects.filter(id=branch_id)
+                    # comp_obj.branch_id.filter(product_branch=obj)
+                    # print(comp_obj.filter(branch_id=obj))
+                    # if obj.exists():
+                    branch_obj = branch_obj.first()
+                    print(branch_obj)
+                else:
+                    return Response(
+                        {
+                            STATUS: False,
+                            MESSAGE: "Please provide a branch id under your company"
+                        }
+                    )
+            else:
+                branch_obj = aira_obj.branch_id
+                print("branch :", branch_obj)
+
+            print("got branch b ", branch_obj)
+            # return Response(True)
 
             # action = self.request.POST.get('action', '')
             # if isnull(action):
@@ -156,6 +205,7 @@ class PurchaseOrderView(ListAPIView):
                 }
             )
 
+
             #instance for bulk insert for PurchaseOrder
             instance = []
 
@@ -169,73 +219,114 @@ class PurchaseOrderView(ListAPIView):
             pc_obj.vendor_referance = vendor_referance
             pc_obj.paid_amount = paid_amount
             pc_obj.total_amount = total_amount
-            pc_obj.save()
-            print("Purchase order saved")
 
-            # pc_id = PurchaseContracts.objects.last().id
-            print("last pc id ", pc_obj.id)
 
-            #instance for bulk insert for Inventory
-            inventory_instance = []
 
-            #to save item id for iteration purpose , used to specify in ORM
-            item_id = []
 
-            # to save items, and take data from it during iteration
-            items_list = []
-
-            for item in items:
-                print(item, " added to list")
-                instance.append(
-                    Purchase_Items_relation(
-                        contract_id = pc_obj.id + 1,
-                        purchase_id='Purchase_id_here',
-                        product_Id=Products.objects.filter(id=item['id']).first(),
-                        item_price= float(item['price']),
-                        tax=item['tax'],
-                    )
-                )
-
-                inventory_instance.append(
-                    Inventory(
-                        itemid = Products.objects.filter(id=item['id']).first(),
-                        item_in = item['qty'],
-                        type = "purchase",
-                        unit_price = float(item['price'])*float(item['qty']),
-                        # unit_price= "",
-                        barcodeid = "TEST_CODE"
-                    )
-                )
-
-                item_id.append(item['id'])
-                items_list.append(
-                    {
-                        'id': item['id'],
-                        'qty': item['qty'],
-                    }
-                )
-            print("Item list ",items_list)
-
-            pdt_objs = Products.objects.filter(id__in = item_id)
-
-            print("pdt_objs",pdt_objs)
-            x=0
-            for pdt_obj in pdt_objs:
-                print(pdt_obj.name," old stock "+str(pdt_obj.stock))
-                pdt_obj.stock += float(items_list[x]['qty'])
-                print(pdt_obj.name,"new stock "+str(pdt_obj.stock))
-                print(str(items_list[x]['qty'])+' was added')
-                x += 1
-
-            # Save all objects in 1 query
-            Products.objects.bulk_update(pdt_objs, ['stock']) #updating stok in Product
-
-            # print("changed : ",o)
-            print('data ',items_list[0]['qty'])
 
             # return Response(True)
 
             with transaction.atomic():
+                pc_obj.save()
+                print("Purchase order saved")
+
+                # pc_id = PurchaseContracts.objects.last().id
+                print("last pc id ", pc_obj.id)
+
+                # instance for bulk insert for Inventory
+                inventory_instance = []
+
+                # to save item id for iteration purpose , used to specify in ORM
+                item_id = []
+
+                # to save items, and take data from it during iteration
+                items_list = []
+
+                for item in items:
+                    print(item, " added to list")
+                    instance.append(
+                        Purchase_Items_relation(
+                            contract_id=pc_obj.id + 1,
+                            purchase_id='Purchase_id_here',
+                            product_Id=Products.objects.filter(id=item['id']).first(),
+                            item_price=float(item['price']),
+                            tax=item['tax'],
+                        )
+                    )
+
+                    inventory_instance.append(
+                        Inventory(
+                            itemid=Products.objects.filter(id=item['id']).first(),
+                            item_in=item['qty'],
+                            type="purchase",
+                            unit_price=float(item['price']) * float(item['qty']),
+                            # unit_price= "",
+                            barcodeid="TEST_CODE",
+                            branch=branch_obj,
+                        )
+                    )
+
+                    item_id.append(item['id'])
+                    items_list.append(
+                        {
+                            'id': item['id'],
+                            'qty': item['qty'],
+                        }
+                    )
+                print("Item list ", items_list)
+
+
+
+                pdt_objs = Products.objects.filter(id__in=item_id)
+                branch_pdt_objs = pdt_objs.filter(branch__id=branch_obj.id)
+
+
+                flag = 0
+                unavailable = []
+                for x in pdt_objs:
+                    print("pdt : ",x.id)
+
+                    if x in branch_pdt_objs:
+                        print(x.id," Item found")
+                    else:
+                        print(x.id," Item not found")
+                        unavailable.append(
+                            {
+                                "id":x.id,
+                                "name":x.name
+                            }
+                        )
+                        flag = 1
+
+                if flag == 1:
+                    return Response(
+                        {
+                            STATUS:False,
+                            MESSAGE:"please add the following products first",
+                            "cant_find":unavailable,
+                        }
+                    )
+
+                # print("pdt_objs1", pdt_objs)
+                # pdt_objs = pdt_objs.filter(branch__id = branch_obj.id)
+                # print("pdt_objs2", branch_pdt_objs)
+
+                # return Response(True)
+                x = 0
+                for pdt_obj in pdt_objs:
+                    print(pdt_obj.name, " old stock " + str(pdt_obj.stock))
+                    pdt_obj.stock += float(items_list[x]['qty'])
+                    pdt_obj.branch = branch_obj
+                    print(pdt_obj.name, "new stock " + str(pdt_obj.stock))
+                    print(str(items_list[x]['qty']) + ' was added')
+                    x += 1
+
+
+                # Save all objects in 1 query
+                Products.objects.bulk_update(pdt_objs, ['stock'])  # updating stok in Product
+
+                # print("changed : ",o)
+                print('data ', items_list[0]['qty'])
                 Purchase_Items_relation.objects.bulk_create(instance)
                 print("items relation created")
                 Inventory.objects.bulk_create(inventory_instance)
@@ -253,19 +344,19 @@ class PurchaseOrderView(ListAPIView):
                     obj = Purchase_Items_relation.objects.filter(id=x.id).first()
                     pc_obj.items.add(obj)
 
-            print("Purchase order saved")
+                print("Purchase order saved")
 
-            if float(paid_amount) > 0.0 :
-                'if any advance amount paid, it will be recorded in payement history'
-                print("Advance paid")
-                description = 'advance'
-                ph_obj = PurchasePayemetHistory()
-                ph_obj.purchase_id = pc_obj.id
-                ph_obj.date_of_payement = pc_obj.created
-                ph_obj.amount = paid_amount
-                ph_obj.description = description
-                ph_obj.save()
-                pc_obj.payement_history.add(ph_obj)
+                if float(paid_amount) > 0.0 :
+                    'if any advance amount paid, it will be recorded in payement history'
+                    print("Advance paid")
+                    description = 'advance'
+                    ph_obj = PurchasePayemetHistory()
+                    ph_obj.purchase_id = pc_obj.id
+                    ph_obj.date_of_payement = pc_obj.created
+                    ph_obj.amount = paid_amount
+                    ph_obj.description = description
+                    ph_obj.save()
+                    pc_obj.payement_history.add(ph_obj)
 
 
             return Response(
@@ -336,9 +427,42 @@ class PurchaseOrderView(ListAPIView):
 
 class InventoryView(ListAPIView):
     serializer_class = InventoryViewSerializer
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
     def get_queryset(self):
-        qs = Inventory.objects.all()
-        return qs
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj)
+
+        comp_obj = aira_obj.company_id
+
+        branch_obj = aira_obj.branch_id
+
+        if aira_obj.type == "company":
+            print("Company name :", comp_obj.name)
+
+            print("Got company request ", username)
+            queryset = Inventory.objects.filter(company=comp_obj)
+        elif aira_obj.type == "branch":
+            print("Company name :", comp_obj.name)
+            print("Branch name :", branch_obj.name)
+
+            print("Got branch request ", username)
+            queryset = Inventory.objects.filter(branch=branch_obj)
+        elif aira_obj.type == "counter":
+            print("Company name :", comp_obj.name)
+            print("Branch name :", branch_obj.name)
+
+            print("Got counter request ", username)
+            queryset = Inventory.objects.filter(branch=aira_obj.branch_id)
+        else:
+            queryset = Inventory.objects.none()
+
+        # qs = Inventory.objects.all().order_by('-id')
+        return queryset
 
 class PurchasePayement(ListAPIView):
 

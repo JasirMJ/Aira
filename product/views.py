@@ -4,7 +4,9 @@ from django.http import HttpResponse
 from django.shortcuts import render
 
 # Create your views here.
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from AiraPanel.models import *
@@ -19,9 +21,42 @@ def index(request):
 class ProductView(ListAPIView):
     serializer_class = ProductsSerializers
 
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
 
     def get_queryset(self):
-        queryset = Products.objects.all().order_by('-id')
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj)
+
+        comp_obj = aira_obj.company_id
+
+        branch_obj = aira_obj.branch_id
+
+        if aira_obj.type == "company":
+            print("Company name :",comp_obj.name)
+
+            print("Got company request ",username)
+            queryset = Products.objects.filter(company=comp_obj)
+        elif aira_obj.type == "branch":
+            print("Company name :",comp_obj.name)
+            print("Branch name :",branch_obj.name)
+
+            print("Got branch request ", username)
+            queryset = Products.objects.filter(branch = branch_obj)
+        elif aira_obj.type == "counter":
+            print("Company name :",comp_obj.name)
+            print("Branch name :",branch_obj.name)
+
+            print("Got counter request ", username)
+            queryset = Products.objects.filter(branch=aira_obj.branch_id)
+        else:
+            queryset = Products.objects.none()
+        # queryset = Products.objects.none()
+
+        # queryset = Products.objects.all().order_by('-id')
 
         id = self.request.POST.get('id','')
         if id == '':
@@ -32,10 +67,29 @@ class ProductView(ListAPIView):
 
 
     def post(self,request):
+        username = self.request.user.id
+        userid = self.request.user.username
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print("aira :",aira_obj)
+
+        comp_obj = aira_obj.company_id
+        print("company :",comp_obj)
 
 
+        # return Response(
+        #     {
+        #         "username":username,
+        #         "userid":userid
+        #     }
+        # )
+        if Products.objects.filter(company = comp_obj).exists():
 
-        if Products.objects.all().exists():
+            n = 5
+            pdtcode = 'aira'
+            print(pdtcode + f'{n:05}')
+
+
             last = Products.objects.last().id
             auto_id = 100000
             pdt_id_count = auto_id + last
@@ -55,6 +109,41 @@ class ProductView(ListAPIView):
         sub_category_id = self.request.POST.get('sub_category_id', '')
         unit_id = self.request.POST.get('unit_id', '')
 
+        # branch_obj1 = ""
+        # branch_obj = ""
+
+        if aira_obj.type == "company":
+            branch_id = self.request.POST.get("branch_id","")
+            if branch_id == "" or not branch_id:
+                return Response(
+                    {
+                        STATUS:False,
+                        MESSAGE:"Required branch_id"
+                    }
+                )
+
+            branch_obj = comp_obj.branch_id.filter(id=branch_id)
+            print("branch obj ",branch_obj)
+            if branch_obj.exists():
+                # obj = Branch.objects.filter(id=branch_id)
+                # comp_obj.branch_id.filter(product_branch=obj)
+                # print(comp_obj.filter(branch_id=obj))
+                # if obj.exists():
+                branch_obj = branch_obj.first()
+                print(branch_obj)
+            else:
+                return Response(
+                    {
+                        STATUS:False,
+                        MESSAGE:"Please provide a branch id under your company"
+                    }
+                )
+        else:
+            branch_obj = aira_obj.branch_id
+            print("branch :", branch_obj)
+
+        print("got branch b ",branch_obj)
+        # return Response(True)
         if company_id == "" or not company_id:
             msg = "required company_id"
             return Response(
@@ -102,6 +191,13 @@ class ProductView(ListAPIView):
                 }
             )
         print(INFO, "name :", id)
+
+        # if branch_obj == None:
+        #     print(branch_obj)
+        #     return Response("required branch id")
+        # else:
+        #     print(branch_obj)
+        #     return Response("got branch")
         try:
             print(INFO,"Adding to DB")
             p_obj = Products()
@@ -110,6 +206,9 @@ class ProductView(ListAPIView):
             p_obj.hsn_code = hsncode
             p_obj.hsn_group = hsngrp
             p_obj.item_name = itemname
+
+            p_obj.branch = branch_obj
+            p_obj.company = comp_obj
 
 
 
@@ -130,6 +229,7 @@ class ProductView(ListAPIView):
             # # details
             print("p id",p_obj.id)
             p_obj.save()
+            print("Product : saved :",p_obj)
             print("p id", p_obj.id)
 
             p_obj.manufaturer.add(Companies.objects.filter(id=company_id).first().id)
@@ -156,7 +256,14 @@ class ProductView(ListAPIView):
             )
 
         except Exception as e:
-            p_obj.delete()
+            print("Exception : " + str(e))
+            try:
+                print("Product: deleting", p_obj)
+                p_obj.delete()
+            except Exception as e1:
+                print("cant delete Product coz : "+str(e1))
+
+
 
             return Response(
                 {

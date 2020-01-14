@@ -284,12 +284,62 @@ class SubCategoryView(ListAPIView):
 
 class CompanyView(ListAPIView):
     serializer_class = CompanySerializers
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
 
     def get_queryset(self):
-        queryset = Companies.objects.all()
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj)
+        id = self.request.GET.get('id','')
+
+        if aira_obj.type == "company":
+            queryset = Companies.objects.none()
+        elif aira_obj.type == "branch" or aira_obj.type == "counter":
+            # queryset = Companies.objects.filter(company_of=aira_obj.branch_id.id)
+            queryset = Companies.objects.none()
+        else:
+            queryset = Companies.objects.none()
+
+            if id == "":
+                print("no id")
+                queryset = queryset
+            else:
+                print("id",id)
+                print(queryset)
+                queryset = queryset.filter(id = id)
+
         return queryset
 
     def post(self, request):
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj)
+
+        comp_obj = aira_obj.company_id
+
+
+
+        if aira_obj.type == "company":
+            print("Company name :", comp_obj.name)
+            print("Got company request ", username)
+            branch_id = self.request.POST.get("branch_id","")
+            if branch_id == "" or not branch_id:
+                return Response(
+                    {
+                        STATUS:False,
+                        MESSAGE:"Required branch_id",
+                    }
+                )
+
+        else:
+            branch_obj = aira_obj.branch_id
+            branch_id = branch_obj.id
+
         name = self.request.POST.get('name', '')
         if name == "" or not name:
             msg = "required name"
@@ -302,6 +352,7 @@ class CompanyView(ListAPIView):
         print(INFO, "name :", id)
 
         obj = Companies()
+        obj.company_of = branch_id
         obj.name = name
         try:
             obj.save()
@@ -346,6 +397,7 @@ class CompanyView(ListAPIView):
 
         obj = Companies.objects.filter(id=id).first()
         obj.name = name
+        obj.company_of = "assssssssssss"
         obj.save()
 
         return Response(
@@ -396,12 +448,31 @@ class CompanyView(ListAPIView):
 
 class CustomerView(ListAPIView):
     serializer_class = CustomerSerializers
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
 
     def get_queryset(self):
-        queryset = Customers.objects.all()
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj)
+        id = self.request.GET.get('id', '')
+        if aira_obj.type == "company":
+            print(aira_obj.type,"get request")
+            queryset = Customers.objects.filter(company=aira_obj.company_id)
+        elif aira_obj.type == "branch" or aira_obj.type == "counter":
+            print(aira_obj.type,"get request")
+            queryset = Customers.objects.filter(branch=aira_obj.branch_id)
+        else:
+            print(self.request.user.username,"get request")
+            queryset = Customers.objects.none()
+
         return queryset
 
     def post(self, request):
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj)
 
         name = self.request.POST.get('name', '')
 
@@ -444,6 +515,13 @@ class CustomerView(ListAPIView):
         obj.mobile = mobile
         obj.job_position = job_position
         obj.email = email
+
+        if aira_obj.type == "company":
+            obj.company = aira_obj.company_id
+        elif aira_obj.type == "branch" or aira_obj.type == "counter":
+            obj.company = aira_obj.company_id
+            obj.branch = aira_obj.branch_id
+
 
         try:
             obj.save()
@@ -1067,3 +1145,37 @@ class AiraUser(ListAPIView):
             }
         )
 
+class TaxView(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    queryset = Tax.objects.all().order_by('-id')
+    serializer_class = TaxViewSerializer
+
+    def post(self,request):
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj.type)
+        print(aira_obj.branch_id)
+        # if aira_obj.type == "branch" or aira_obj.type == "counter":
+        #     # request.data['branch'] = aira_obj.branch_id
+        #     pass
+
+        serializer = TaxViewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(branch = aira_obj.branch_id)
+        return Response(
+            {
+                MESSAGE:"post method",
+                "Data":request.data
+            }
+        )
+    def delete(self,request):
+        Tax.objects.all().delete()
+        return Response(
+            {
+                STATUS:True,
+                MESSAGE:"Deleted all data"
+            }
+        )

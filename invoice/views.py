@@ -566,61 +566,99 @@ class InvoiceView(ListAPIView):
                 stock_message = []
                 error_message = 0
 
+                # p_obj = Products.objects.filter(branch__id=branch_obj.id)
+                # print(p_obj)
+                flag =0
+                unavailable = []
+                print(items[0]['id'])
                 for item in items:
-                    item_obj = Products.objects.filter(id=item['id']).first()
-                    print(INFO,item_obj)
-                    print(INFO,item_obj.name)
-                    available_stock = item_obj.stock
-                    required_stock = item['qty']
+                    # item_obj = Products.objects.filter(id=items[0]['id']).filter(branch=branch_obj)
+                    item_obj = Products.objects.filter(id=item['id']).filter(branch=branch_obj)
+                    print("item :",item_obj)
 
-                    # print(item_obj.name, " Available stock :", item_obj.stock)
-                    # print(item_obj.name, " Required stock :", item['qty'])
-                    if required_stock > available_stock:
-                        stock_message.append(
+                    if item_obj.exists():
+                        item_obj = item_obj.first()
+                        print(item_obj," : product Found")
+                        print(INFO, item_obj)
+                        print(INFO, item_obj.name)
+                        available_stock = item_obj.stock
+                        required_stock = item['qty']
+
+                        # print(item_obj.name, " Available stock :", item_obj.stock)
+                        # print(item_obj.name, " Required stock :", item['qty'])
+                        if required_stock > available_stock:
+                            stock_message.append(
+                                {
+                                    'id': item_obj.id,
+                                    'name': item_obj.name,
+                                    'message': "O/S",
+                                    'available': available_stock,
+                                    'required': required_stock,
+                                    CODE: "asdqwd21v",
+                                }
+                            )
+                            error_message = 1
+
+                        # print(Products.objects.filter(id=item['id']).first())
+                        # print(item['id'], "rs ", item['price'])
+
+                        instance.append(
+                            Items_relation(
+                                invoice_id=invoice_obj.id,
+                                product_Id=item_obj,
+                                product_name=item_obj.name,
+                                qty=item['qty'],
+                                item_price=item['price'],
+                                tax=item['tax'],
+                            ),
+                        )
+                        print("Items_relation : ", item_obj.name, " is added")
+
+                        inventory_instance.append(
+                            Inventory(
+                                itemid=item_obj,
+                                item_out=item['qty'],
+                                type="sale",
+                                unit_price=float(item['price']) * float(item['qty']),
+                                barcodeid="TEST_CODE",
+                                branch = branch_obj,
+                            )
+                        )
+                        print("Inventory : ", item_obj.name, "x", item['qty'], " is added")
+
+                        item_id.append(item['id'])
+                        items_list.append(
                             {
-                                'id': item_obj.id,
-                                'name': item_obj.name,
-                                'message': "O/S",
-                                'available': available_stock,
-                                'required': required_stock,
-                                CODE: "asdqwd21v",
+                                'id': item['id'],
+                                'qty': item['qty'],
                             }
                         )
-                        error_message = 1
-
-                    # print(Products.objects.filter(id=item['id']).first())
-                    # print(item['id'], "rs ", item['price'])
-
-                    instance.append(
-                        Items_relation(
-                            invoice_id=invoice_obj.id,
-                            product_Id=item_obj,
-                            product_name=item_obj.name,
-                            qty=item['qty'],
-                            item_price=item['price'],
-                            tax=item['tax'],
-                        ),
-                    )
-                    print("Items_relation : ", item_obj.name, " is added")
-
-                    inventory_instance.append(
-                        Inventory(
-                            itemid=item_obj,
-                            item_out=item['qty'],
-                            type="sale",
-                            unit_price=float(item['price']) * float(item['qty']),
-                            barcodeid="TEST_CODE"
+                    else:
+                        print("unknown : product:",item['id'])
+                        itemid = item['id']
+                        unavailable.append(
+                            {
+                                "id":itemid
+                            }
                         )
-                    )
-                    print("Inventory : ", item_obj.name, "x", item['qty'], " is added")
+                        flag = 1
+                # print(unavailable)
 
-                    item_id.append(item['id'])
-                    items_list.append(
+                # return Response(True)
+                #
+                #
+                # if 1:
+
+
+                if flag == 1:
+                    return Response(
                         {
-                            'id': item['id'],
-                            'qty': item['qty'],
+                            STATUS:False,
+                            MESSAGE:"please add the following products",
+                            "unknown":unavailable,
                         }
                     )
+                # return Response(True)
 
                 if error_message == 1:
                     invoice_obj.delete()
@@ -637,11 +675,12 @@ class InvoiceView(ListAPIView):
                 x = 0
 
                 for pdt_obj in pdt_objs:
-                    # print(pdt_obj.name, " old stock " + str(pdt_obj.stock))
+                    print(pdt_obj.name, " old stock " + str(pdt_obj.stock))
+                    print(items_list[x]['qty'], " no of ", pdt_obj.name, " took from ", pdt_obj.stock)
                     pdt_obj.stock -= float(items_list[x]['qty'])
-                    print(pdt_obj.stock, " no of ", pdt_obj.name, " took from ", pdt_obj.stock, "remaing stock is ",
-                          pdt_obj.stock)
-                    # print(str(items_list[x]['qty']) + ' was removed')
+                    print("Remaing stock is ",pdt_obj.stock)
+
+                    print(str(items_list[x]['qty']) + ' was removed')
                     x += 1
 
                 # Save all objects in 1 query

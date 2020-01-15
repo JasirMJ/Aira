@@ -610,6 +610,11 @@ class InvoiceView(ListAPIView):
                                 qty=item['qty'],
                                 item_price=item['price'],
                                 tax=item['tax'],
+                                tax_amount=item['tax_amount'],
+                                item_code=item['item_code'],
+                                unit_price=item['unit_price'],
+                                discount=item['discount'],
+                                net_amount=item['net_amount']
                             ),
                         )
                         print("Items_relation : ", item_obj.name, " is added")

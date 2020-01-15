@@ -124,7 +124,13 @@ class Items_relation(models.Model):
     product_name = models.CharField(max_length=255,null=True)
     qty = models.FloatField(null=True)
     item_price = models.CharField(max_length=20,null=True)
-    tax = models.CharField(max_length=10,null=True)
+    tax = models.CharField(max_length=100,null=True)
+    tax_amount = models.CharField(max_length=100,null=True)
+
+    item_code = models.CharField(max_length=120,null=True)
+    unit_price = models.CharField(max_length=120,null=True)
+    discount = models.CharField(max_length=120,null=True)
+    net_amount = models.CharField(max_length=120,null=True)
 
 class PayemetHistory(models.Model):
     invoice_id = models.CharField(max_length=12,null=True)
@@ -207,6 +213,8 @@ class Purchase_Items_relation(models.Model):
     item_price = models.CharField(max_length=20, null=True)
     tax = models.CharField(max_length=10, null=True)
 
+
+
 class PurchaseContracts(models.Model):
     items = models.ManyToManyField(Purchase_Items_relation)
     contract_id = models.CharField(max_length=20,null=True)
@@ -257,3 +265,11 @@ class Tax(models.Model):
     tax_percentage = models.CharField(max_length=20)
     description = models.CharField(max_length=255,null=True)
     branch = models.ForeignKey(Branch,on_delete=models.CASCADE)
+
+
+class PdtTaxMapping(models.Model):
+    pdt_code = models.CharField(max_length=255)
+    gst = models.ManyToManyField(Tax,related_name="gst_tax")
+    igst = models.ManyToManyField(Tax,related_name="igst_tax")
+    vat = models.ManyToManyField(Tax,related_name="vat_tax")
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE,null=True)

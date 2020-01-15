@@ -1179,3 +1179,59 @@ class TaxView(ListAPIView):
                 MESSAGE:"Deleted all data"
             }
         )
+
+
+class PdtTaxMappingView(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    queryset = PdtTaxMapping.objects.all().order_by('-id')
+    serializer_class = PdtTaxMappingSerializer
+
+    def post(self,request):
+        username = self.request.user.username
+        userid = self.request.user.id
+
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print(aira_obj.type)
+        print(aira_obj.branch_id)
+        branch_id = aira_obj.branch_id
+        print(branch_id)
+        if aira_obj.type == "company":
+            branch_id = self.request.POST.get("branch_id","")
+            if branch_id == "" or not branch_id:
+                return Response(
+                    {
+                        STATUS:False,
+                        MESSAGE:"required branch_id"
+                    }
+                )
+            branch_id = Branch.objects.filter(id = branch_id).first()
+
+        print(branch_id)
+
+
+        # if aira_obj.type == "branch" or aira_obj.type == "counter":
+        #     # request.data['branch'] = aira_obj.branch_id
+        #     pass
+
+
+        serializer = PdtTaxMappingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(branch = branch_id)
+
+
+
+        return Response(
+            {
+                MESSAGE:"post method",
+                "Data":request.data
+            }
+        )
+    def delete(self,request):
+        PdtTaxMapping.objects.all().delete()
+        return Response(
+            {
+                STATUS:True,
+                MESSAGE:"Deleted all data"
+            }
+        )

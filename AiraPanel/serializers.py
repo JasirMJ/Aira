@@ -148,3 +148,8 @@ class TaxViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tax
         fields = "__all__"
+
+class PdtTaxMappingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PdtTaxMapping
+        fields = "__all__"

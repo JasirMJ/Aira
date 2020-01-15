@@ -14,4 +14,5 @@ urlpatterns = [
     path('login/', views.LoginView.as_view(), name='login'),
     path('aira-users/', views.AiraUser.as_view(), name='users'),
     path('tax/', views.TaxView.as_view(), name='tax'),
+    path('map-tax/', views.PdtTaxMappingView.as_view(), name='tax'),
 ]

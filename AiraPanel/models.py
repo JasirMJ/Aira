@@ -87,7 +87,7 @@ class Products(models.Model):
     common_name = models.CharField(max_length=12, null=True)
     manufaturer = models.ManyToManyField(Companies)
     category = models.ManyToManyField(Categories)
-    subcategory = models.ManyToManyField(SubCategories)
+    # subcategory = models.ManyToManyField(SubCategories)
     unit = models.ManyToManyField(Units)
 
     reorder_level = models.IntegerField( null=True)
@@ -275,3 +275,13 @@ class PdtTaxMapping(models.Model):
     igst = models.ManyToManyField(Tax,related_name="igst_tax")
     vat = models.ManyToManyField(Tax,related_name="vat_tax")
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE,null=True)
+
+class Accounts(models.Model):
+    name = models.CharField(max_length=100)
+
+
+class AccountGroups(models.Model):
+    pass
+
+class GeneralLedgers(models.Model):
+    pass

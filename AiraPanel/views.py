@@ -303,16 +303,17 @@ class CompanyView(ListAPIView):
 
         aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
         print(aira_obj)
+        print("company_id : ",aira_obj.company_id)
+        print("branch_id : ",aira_obj.branch_id)
         id = self.request.GET.get('id','')
 
         if aira_obj.type == "company":
             queryset = Companies.objects.none()
         elif aira_obj.type == "branch" or aira_obj.type == "counter":
-            # queryset = Companies.objects.filter(company_of=aira_obj.branch_id.id)
-            queryset = Companies.objects.none()
+            queryset = Companies.objects.filter(company_of=aira_obj.branch_id.id)
+            # queryset = Companies.objects.none()
         else:
             queryset = Companies.objects.none()
-
             if id == "":
                 print("no id")
                 queryset = queryset
@@ -321,6 +322,7 @@ class CompanyView(ListAPIView):
                 print(queryset)
                 queryset = queryset.filter(id = id)
 
+        # queryset = Companies.objects.all()
         return queryset
 
     def post(self, request):
@@ -338,6 +340,7 @@ class CompanyView(ListAPIView):
             print("Company name :", comp_obj.name)
             print("Got company request ", username)
             branch_id = self.request.POST.get("branch_id","")
+            # branch_id = aira_obj.branch_id.id
             if branch_id == "" or not branch_id:
                 return Response(
                     {

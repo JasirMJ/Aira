@@ -163,15 +163,7 @@ class ProductView(ListAPIView):
                 }
             )
         print(INFO, "category_id :", category_id)
-        if sub_category_id == "" or not sub_category_id:
-            msg = "required sub_category_id"
-            return Response(
-                {
-                    MESSAGE: msg,
-                    STATUS: False,
-                }
-            )
-        print(INFO, "sub_category_id :", sub_category_id)
+
         if unit_id == "" or not unit_id:
             msg = "required unit_id"
             return Response(
@@ -238,8 +230,8 @@ class ProductView(ListAPIView):
             p_obj.category.add(Categories.objects.filter(id=category_id).first().id)
             print("Categories :",Categories.objects.filter(id=category_id).first().name)
 
-            p_obj.subcategory.add(SubCategories.objects.filter(id=sub_category_id).first().id)
-            print("SubCategories : ",SubCategories.objects.filter(id=sub_category_id).first().name)
+            # p_obj.subcategory.add(SubCategories.objects.filter(id=sub_category_id).first().id)
+            # print("SubCategories : ",SubCategories.objects.filter(id=sub_category_id).first().name)
 
             p_obj.unit.add(Units.objects.filter(id=unit_id).first().id)
             print("Units : ",Units.objects.filter(id=unit_id).first().name)

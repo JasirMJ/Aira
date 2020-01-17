@@ -148,9 +148,12 @@ class PurchaseOrderView(ListAPIView):
             paid_amount = float(self.request.POST.get('paid_amount', '0'))
 
             #fetching item str to json convesion
+            print(type(items))
             items = json.loads(items)
-            vendors = json.loads(vendors)
+            print(items)
 
+            vendors = json.loads(vendors)
+            # return Response(False)
             if aira_obj.type == "company":
                 branch_id = self.request.POST.get("branch_id", "")
                 if branch_id == "" or not branch_id:

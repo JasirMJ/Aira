@@ -59,14 +59,52 @@ class ProductsSerializers(serializers.ModelSerializer):
         # fields = ['username', 'email']
         fields = '__all__'
 
-class CategorySerializers(serializers.ModelSerializer):
-    # SNIT = SNITUsers()
-    # departments = serializers.SerializerMethodField()
 
+# class CategoryParentSerializers(serializers.ModelSerializer):
+#     class Meta:
+#         model = Categories
+#         fields = [
+#             'id',
+#             'name',
+#             'parent'
+#         ]
+# class CategorySerializers(serializers.ModelSerializer):
+#     subcategory = CategoryParentSerializers(many=True, read_only=True)
+#     class Meta:
+#         model = Categories
+#         fields = [
+#             'id',
+#             'name',
+#             'parent',
+#             'subcategory'
+#
+#         ]
+#         # fields = '__all__'
+#
+#     # def get_fields(self):
+#     #     fields = super(CategorySerializers, self).get_fields()
+#     #     fields['parent'] = CategorySerializers()
+#     #     return fields
+
+
+class CategorySerializers(serializers.ModelSerializer):
+    # parent = serializers.PrimaryKeyRelatedField()
+    # subcategory = serializers.ManyRelatedField()
     class Meta:
         model = Categories
-        # fields = ['username', 'email']
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'parent',
+            'subcategory'
+
+        ]
+        # fields = '__all__'
+
+    def get_fields(self):
+        fields = super(CategorySerializers, self).get_fields()
+        fields['subcategory'] = CategorySerializers(many=True,read_only=True)
+        return fields
 
 class CounterSerializers(serializers.ModelSerializer):
     class Meta:

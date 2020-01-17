@@ -31,10 +31,10 @@ class AiraAuthentication(models.Model):
     #         'Unselect this instead of deleting accounts.'
     #     ),
     # )
-
-class asd(models.Model):
-    name = models.CharField(max_length=120,unique=True,null=False)
-
+#
+# class asd(models.Model):
+#     name = models.CharField(max_length=120,unique=True,null=False)
+#
 
 
 
@@ -57,6 +57,8 @@ class Customers(models.Model):
 
 class Categories(models.Model):
     name = models.CharField(max_length=120,unique=True)
+    parent = models.ForeignKey("self",on_delete=models.PROTECT,null=True,related_name="subcategory")
+
 
 class SubCategories(models.Model):
     name = models.CharField(max_length=120,unique=True)

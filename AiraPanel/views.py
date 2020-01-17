@@ -30,35 +30,45 @@ class CategoryView(ListAPIView):
         queryset = Categories.objects.all()
         return queryset
     def post(self,request):
-        name = self.request.POST.get('name','')
-        if name == "" or not name:
-            msg = "required name"
-            return Response(
-                {
-                    MESSAGE: msg,
-                    STATUS: False,
-                }
-            )
-        print(INFO, "name :", id)
-
-        obj = Categories()
-        obj.name = name
-        try:
-            obj.save()
-
-            return Response(
-                {
-                    STATUS: True,
-                    MESSAGE: "post",
-                }
-            )
-        except Exception as e:
-            return Response(
-                {
-                    STATUS: False,
-                    MESSAGE: str(e),
-                }
-            )
+        serializer = CategorySerializers(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {
+                MESSAGE: "post method",
+                "category added": request.data
+            }
+        )
+        # name = self.request.POST.get('name','')
+        # if name == "" or not name:
+        #     msg = "required name"
+        #
+        #     return Response(
+        #         {
+        #             MESSAGE: msg,
+        #             STATUS: False,
+        #         }
+        #     )
+        # print(INFO, "name :", id)
+        #
+        # obj = Categories()
+        # obj.name = name
+        # try:
+        #     obj.save()
+        #
+        #     return Response(
+        #         {
+        #             STATUS: True,
+        #             MESSAGE: "post",
+        #         }
+        #     )
+        # except Exception as e:
+        #     return Response(
+        #         {
+        #             STATUS: False,
+        #             MESSAGE: str(e),
+        #         }
+        #     )
     def put(self,request):
         id = self.request.POST.get('id','')
         name = self.request.POST.get('name', '')

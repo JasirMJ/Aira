@@ -1,0 +1,59 @@
+Aira using mysql database so here is how
+https://medium.com/@omaraamir19966/connect-django-with-mysql-database-f946d0f6f9e3
+
+
+superuser : aira
+password  : AiraAdmin
+
+Companies
+---------------------------------
+username : company01
+passowrd : 123123
+token    : Token 0bdc3b1193ba4327080257af16865ab3a54e405d
+
+branch   : c1b1
+password : 123123
+token    : Token 109506435bf2d81108f9f37d545bdd9b08ec6f96
+
+counter  : default
+password :
+token    :
+
+branch   : c1b2
+password :
+token    : Token 019e82a72ac8e5984919fdcdf752a639ed7b7c16
+
+counter  : default
+password :
+token    :
+
+counter  : c1b2c1
+password :
+token    :
+_________________________
+
+username : company02
+passowrd : 123123
+
+branch   :
+password :
+
+counter  :
+password :
+
+branch   :
+password :
+_________________________
+
+username : company03
+passowrd : 123123
+
+branch   :
+password :
+
+counter  :
+password :
+
+branch   :
+password :
+_________________________

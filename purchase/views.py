@@ -104,6 +104,7 @@ class PurchaseOrderView(ListAPIView):
         '''
         :return:
         '''
+        # PurchaseOrder.objects.all().delete()
         queryset = PurchaseOrder.objects.all().order_by('-id')
         return queryset
 
@@ -117,11 +118,22 @@ class PurchaseOrderView(ListAPIView):
 
         aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
         print("aira :", aira_obj)
+        branch_id = aira_obj.branch_id.id
+        company_id = aira_obj.company_id.id
 
         comp_obj = aira_obj.company_id
+        branch_obj = aira_obj.branch_id
         print("company :", comp_obj)
+        print("company id :", comp_obj.id)
+        print("company_id :", company_id)
 
 
+        print("branch :", branch_obj)
+        print("branch id :", branch_obj.id)
+        print("branch_id :", branch_id)
+
+
+        # return Response(True)
         '''
         :param request:
 
@@ -146,6 +158,26 @@ class PurchaseOrderView(ListAPIView):
 
             total_amount = self.request.POST.get('total_amount')
             paid_amount = float(self.request.POST.get('paid_amount', '0'))
+
+            debit_account = self.request.POST.get('debit')
+            credit_account = self.request.POST.get('credit')
+
+            if debit_account == "" or not debit_account:
+                return Response(
+                    {
+                        STATUS: False,
+                        MESSAGE: "Required 'debit' ",
+                        CODE: "d1e23rf1",
+                    }
+                )
+            if credit_account == "" or not credit_account:
+                return Response(
+                    {
+                        STATUS: False,
+                        MESSAGE: "Required 'credit' ",
+                        CODE: "d1e23rf1",
+                    }
+                )
 
             #fetching item str to json convesion
             print(type(items))
@@ -222,6 +254,8 @@ class PurchaseOrderView(ListAPIView):
             pc_obj.vendor_referance = vendor_referance
             pc_obj.paid_amount = paid_amount
             pc_obj.total_amount = total_amount
+            pc_obj.company = comp_obj
+            pc_obj.branch = branch_obj
 
 
 
@@ -361,6 +395,16 @@ class PurchaseOrderView(ListAPIView):
                     ph_obj.save()
                     pc_obj.payement_history.add(ph_obj)
 
+                gl_obj = GeneralLedgers(
+                    transactionId=generateId("PO",pc_obj.id),
+                    transactionType=PURCHASES,
+                    creditBy=Accounts.objects.filter(id=credit_account).first(),
+                    debitBy=Accounts.objects.filter(id=debit_account).first(),
+                    amount=total_amount,
+                    companyId=company_id,
+                    branchId=branch_id,
+                )
+                gl_obj.save()
 
             return Response(
                 {
@@ -468,6 +512,8 @@ class InventoryView(ListAPIView):
         return queryset
 
 class PurchasePayement(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
 
     def get(self,request):
       return Response(
@@ -478,6 +524,21 @@ class PurchasePayement(ListAPIView):
       )
 
     def post(self,request):
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print("aira :", aira_obj)
+        branch_id = aira_obj.branch_id.id
+        company_id = aira_obj.company_id.id
+
+        comp_obj = aira_obj.company_id
+        branch_obj = aira_obj.branch_id
+        print("company :", comp_obj)
+        print("company id :", comp_obj.id)
+        print("company_id :", company_id)
+
+        print("branch :", branch_obj)
+        print("branch id :", branch_obj.id)
+        print("branch_id :", branch_id)
+
         try:
             id = self.request.POST.get('id')
 
@@ -485,6 +546,25 @@ class PurchasePayement(ListAPIView):
             type = self.request.POST.get('type')
             amount = float(self.request.POST.get('amount',0.0))
             date_of_payement = self.request.POST.get('date_of_payement','')
+            debit_account = self.request.POST.get('debit')
+            credit_account = self.request.POST.get('credit')
+
+            if debit_account == "" or not debit_account:
+                return Response(
+                    {
+                        STATUS: False,
+                        MESSAGE: "Required 'debit' ",
+                        CODE: "d1e23rf1",
+                    }
+                )
+            if credit_account == "" or not credit_account:
+                return Response(
+                    {
+                        STATUS: False,
+                        MESSAGE: "Required 'credit' ",
+                        CODE: "d1e23rf1",
+                    }
+                )
 
             if not amount or amount ==0:
                 return Response(
@@ -533,13 +613,27 @@ class PurchasePayement(ListAPIView):
                         msg = "thank you , we expecting your remaning due soon"
                     p_obj.paid_amount = float(p_obj.paid_amount) + float(amount)
 
+                    with transaction.atomic():
+                        ph_obj.save()
+                        p_obj.payement_history.add(ph_obj)
+                        p_obj.save()
+
+                        gl_obj = GeneralLedgers(
+                            transactionId=generateId("PO",p_obj.id),
+                            transactionType=PURCHASES,
+                            creditBy=Accounts.objects.filter(id=credit_account).first(),
+                            debitBy=Accounts.objects.filter(id=debit_account).first(),
+                            amount=total_amount,
+                            companyId=company_id,
+                            branchId=branch_id,
+                        )
+                        gl_obj.save()
                 else:
                     print('!amount')
                     pending_amount = int(total_amount) - int(p_obj.paid_amount)
 
-                ph_obj.save()
-                p_obj.payement_history.add(ph_obj)
-                p_obj.save()
+
+
                 return Response(
                     {
                         STATUS:True,

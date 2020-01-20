@@ -22,6 +22,7 @@ from AiraPanel.models import *
 from AiraPanel.global_variables import *
 from product.serializers import *
 from invoice.serializers import *
+from account.views import *
 
 '''<sendgrid>'''
 import base64
@@ -428,6 +429,26 @@ class InvoiceView(ListAPIView):
         items = json.loads(items)
         action = self.request.POST.get('action')
 
+        debit_account = self.request.POST.get('debit')
+        credit_account = self.request.POST.get('credit')
+
+        if debit_account == "" or not debit_account:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'debit' ",
+                    CODE: "d1e23rf1",
+                }
+            )
+        if credit_account == "" or not credit_account:
+            return Response(
+                {
+                    STATUS: False,
+                    MESSAGE: "Required 'credit' ",
+                    CODE: "d1e23rf1",
+                }
+            )
+
         if action == "" or not action:
             return Response(
                 {
@@ -500,18 +521,24 @@ class InvoiceView(ListAPIView):
 
             print(username)
 
-
+            counter_id = ""
+            branch_id = ""
+            company_id = ""
 
             if user_type == "counter":
                 print("Counter obj :", aira_obj.counter_id)
+                counter_id = aira_obj.counter_id.id
                 counter_obj = aira_obj.counter_id
                 invoice_obj.counterid = counter_obj
 
                 branch_obj = aira_obj.branch_id
+                branch_id = branch_obj.id
                 print("Branch obj :", branch_obj)
                 invoice_obj.branchid = branch_obj
 
                 company_obj = aira_obj.company_id
+                company_id = counter_obj.id
+
                 invoice_obj.companyid = company_obj
                 print("Company object : ", company_obj)
 
@@ -523,16 +550,19 @@ class InvoiceView(ListAPIView):
                 counter_obj = aira_obj.branch_id.counter_id.first()
                 # counter_obj = aira_obj.company.first().branch_id.first().counter_id.first()
                 print("Counter object : ",counter_obj)
+                counter_id = aira_obj.counter_id.id
 
                 invoice_obj.counterid = counter_obj
 
                 branch_obj = aira_obj.branch_id
                 invoice_obj.branchid = branch_obj
                 print("Branch object : ", branch_obj)
+                branch_id = branch_obj.id
 
                 company_obj = aira_obj.company_id
                 invoice_obj.companyid = company_obj
                 print("Company object : ", company_obj)
+                company_id = counter_obj.id
 
                 # return Response(True)
             elif user_type == "company":
@@ -739,6 +769,26 @@ class InvoiceView(ListAPIView):
 
                     invoice_obj.payement_history.add(ph_obj)
                     print("Invoice added to PayementHistory")
+
+                    # serializer = GeneralLedgersSerializer(data=request.data)
+                    gl_obj = GeneralLedgers(
+                        transactionId=generateId("SO",invoice_obj.id),
+                        transactionType =SALES,
+                        creditBy = Accounts.objects.filter(id=credit_account).first(),
+                        debitBy = Accounts.objects.filter(id=debit_account).first(),
+                        amount = total_amount,
+                        companyId = company_id,
+                        branchId = branch_id,
+                        counterId = counter_id
+                    )
+                    gl_obj.save()
+
+                    # gl_obj.taxes.add()
+
+
+                    printCreate("GeneralLedger")
+
+
 
             print(INFO, "invoice id ", invoice_obj.id)
 
@@ -1576,6 +1626,9 @@ class InvoiceViewOld(ListAPIView):
 
 
 class Payement(ListAPIView):
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+
     def get(self,request):
       return Response(
           {
@@ -1584,6 +1637,21 @@ class Payement(ListAPIView):
           }
       )
     def post(self,request):
+        aira_obj = AiraAuthentication.objects.filter(user_id_id=self.request.user.id).first()
+        print("aira :", aira_obj)
+        branch_id = aira_obj.branch_id.id
+        company_id = aira_obj.company_id.id
+
+        comp_obj = aira_obj.company_id
+        branch_obj = aira_obj.branch_id
+        print("company :", comp_obj)
+        print("company id :", comp_obj.id)
+        print("company_id :", company_id)
+
+        print("branch :", branch_obj)
+        print("branch id :", branch_obj.id)
+        print("branch_id :", branch_id)
+
         try:
             id = self.request.POST.get('id')
 
@@ -1591,6 +1659,25 @@ class Payement(ListAPIView):
             type = self.request.POST.get('type')
             amount = float(self.request.POST.get('amount',0.0))
             date_of_payement = self.request.POST.get('date_of_payement','')
+            debit_account = self.request.POST.get('debit')
+            credit_account = self.request.POST.get('credit')
+
+            if debit_account == "" or not debit_account:
+                return Response(
+                    {
+                        STATUS: False,
+                        MESSAGE: "Required 'debit' ",
+                        CODE: "d1e23rf1",
+                    }
+                )
+            if credit_account == "" or not credit_account:
+                return Response(
+                    {
+                        STATUS: False,
+                        MESSAGE: "Required 'credit' ",
+                        CODE: "d1e23rf1",
+                    }
+                )
 
             if not amount or amount ==0:
                 return Response(
@@ -1639,13 +1726,27 @@ class Payement(ListAPIView):
                         msg = "thank you , we expecting your remaning due soon"
                     i_obj.paid_amount = float(i_obj.paid_amount) + float(amount)
 
+                    with transaction.atomic():
+                        gl_obj = GeneralLedgers(
+                            transactionId=generateId("SO", i_obj.id),
+                            transactionType=SALES,
+                            creditBy=Accounts.objects.filter(id=credit_account).first(),
+                            debitBy=Accounts.objects.filter(id=debit_account).first(),
+                            amount=total_amount,
+                            companyId=company_id,
+                            branchId=branch_id,
+                        )
+                        gl_obj.save()
+                        ph_obj.save()
+                        i_obj.payement_history.add(ph_obj)
+                        i_obj.save()
+
                 else:
                     print('!amount')
                     pending_amount = int(total_amount) - int(i_obj.paid_amount)
+                # generateId("PO", pc_obj.id)
 
-                ph_obj.save()
-                i_obj.payement_history.add(ph_obj)
-                i_obj.save()
+
                 return Response(
                     {
                         STATUS:True,

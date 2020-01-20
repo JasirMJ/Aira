@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'product',
     'billing',
     'invoice',
+    'account',
+
 
 ]
 

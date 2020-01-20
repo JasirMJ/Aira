@@ -4,6 +4,26 @@ from django.db import models
 # Create your models here.
 from django_bulk_update.manager import BulkUpdateManager
 
+
+class AccountGroup(models.Model):
+    name = models.CharField(max_length=100,unique=True)
+    parent = models.ForeignKey('self',on_delete=models.PROTECT,null=True)
+    companyId = models.CharField(max_length=20,null=True)
+    branchId = models.CharField(max_length=20,null=True)
+
+class Accounts(models.Model):
+    name = models.CharField(max_length=100,unique=True)
+    parent = models.ForeignKey(AccountGroup,on_delete=models.PROTECT)
+    description = models.TextField(null=True)
+    companyId = models.CharField(max_length=20,null=True)
+    branchId = models.CharField(max_length=20,null=True)
+
+
+
+
+
+
+
 class Counter(models.Model):
     name = models.CharField(max_length=120,null=False)
 
@@ -24,6 +44,8 @@ class AiraAuthentication(models.Model):
     branch_id = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True)
     counter_id = models.ForeignKey(Counter,on_delete=models.PROTECT,null=True)
     type = models.CharField(max_length=20)
+
+
     # is_active = models.BooleanField(
     #     default=True,
     #     help_text=(
@@ -246,6 +268,8 @@ class PurchaseOrder(models.Model):
     total_amount = models.CharField(max_length=12, null=True)
     paid_amount = models.CharField(max_length=12, null=True)
 
+    company = models.ForeignKey(Companies,on_delete=models.PROTECT)
+    branch = models.ForeignKey(Branch,on_delete=models.PROTECT)
     # taxes = models.ManyToManyField()
     # taxes = models.ManyToManyField()
 
@@ -276,12 +300,14 @@ class PdtTaxMapping(models.Model):
     vat = models.ManyToManyField(Tax,related_name="vat_tax")
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE,null=True)
 
-class Accounts(models.Model):
-    name = models.CharField(max_length=100)
-
-
-class AccountGroups(models.Model):
-    pass
-
 class GeneralLedgers(models.Model):
-    pass
+    transactionId = models.CharField(max_length=255)
+    transactionType = models.CharField(max_length=50)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    creditBy = models.ForeignKey(Accounts,on_delete=models.CASCADE,related_name="credit")
+    debitBy = models.ForeignKey(Accounts,on_delete=models.CASCADE,related_name="debit")
+    amount = models.FloatField()
+    taxes = models.ManyToManyField(Tax)
+    companyId = models.CharField(max_length=20)
+    branchId = models.CharField(max_length=20)
+    counterId = models.CharField(max_length=20,null=True)
